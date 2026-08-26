@@ -174,6 +174,36 @@
     <input id="motdepasse" type="password" autocomplete="current-password" placeholder="Mot de passe" required>
     <button type="submit" id="entrer">Entrer</button>
   </form>
+
+  <!--
+    ⚠️ La porte qui ne dépend de rien qu'on puisse oublier.
+
+    « Invalid login credentials » ne distingue pas un mot de passe faux d'un
+    compte qui n'en a aucun — les comptes créés par code n'en ont pas. Sans
+    cette seconde voie, un tableau de bord réservé au mot de passe est
+    inatteignable pour son propre exploitant, et rien à l'écran ne dit
+    pourquoi.
+
+    C'est la règle de l'écran d'accueil de l'application, appliquée ici.
+  -->
+  <p style="margin-top:4px">
+    <button type="button" id="basculer"
+      style="background:transparent;color:var(--primaire);padding:8px 0;min-height:0;text-decoration:underline">
+      Recevoir plutôt un code par e-mail
+    </button>
+  </p>
+
+  <form id="formulaireCode" hidden>
+    <input id="adresseCode" type="email" autocomplete="username" placeholder="Adresse e-mail" required>
+    <button type="submit" id="demander">Envoyer le code</button>
+    <p id="etapeCode" class="discret" hidden style="margin-top:12px">
+      Le code est parti. Il met parfois quelques minutes à arriver.
+    </p>
+    <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code à 6 chiffres"
+      hidden style="margin-top:12px">
+    <button type="button" id="valider" hidden style="margin-top:12px">Valider le code</button>
+  </form>
+
   <p id="erreur"></p>
 </section>
 
@@ -427,13 +457,85 @@
     $('entrer').disabled = false;
 
     if (r.error) {
+      /*
+        ⚠️ Nommer la seconde porte, toujours.
+
+        Ce message ne peut PAS distinguer un mot de passe faux d'un compte qui
+        n'en a aucun : Supabase rend la même phrase dans les deux cas, à
+        dessein. Écrire « mot de passe incorrect » tout court envoie donc
+        chercher un mot de passe à quelqu'un qui n'en a jamais eu.
+      */
       $('erreur').textContent = r.error.message === 'Invalid login credentials'
-        ? 'Adresse ou mot de passe incorrect.'
+        ? "Adresse ou mot de passe incorrect — ou ce compte n'a pas de mot de passe. Utilise le code par e-mail ci-dessous."
         : r.error.message;
       return;
     }
 
     $('motdepasse').value = '';
+    afficherLeBord(true);
+    charger();
+  });
+
+  /*
+    La seconde porte : le code par e-mail.
+
+    `shouldCreateUser: false` — cette page ne crée jamais de compte. Un e-mail
+    inconnu doit obtenir une phrase, pas un compte vide que personne n'a
+    demandé, et surtout pas un compte sans droits qui ferait croire à une
+    panne du tableau.
+  */
+  $('basculer').addEventListener('click', function () {
+    var versCode = $('formulaireCode').hidden;
+    $('formulaireCode').hidden = !versCode;
+    $('formulaire').hidden = versCode;
+    $('erreur').textContent = '';
+    $('basculer').textContent = versCode
+      ? 'Utiliser plutôt mon mot de passe'
+      : 'Recevoir plutôt un code par e-mail';
+    if (versCode) $('adresseCode').value = $('adresse').value;
+  });
+
+  $('formulaireCode').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    $('erreur').textContent = '';
+    $('demander').disabled = true;
+
+    var r = await sb.auth.signInWithOtp({
+      email: $('adresseCode').value.trim(),
+      options: { shouldCreateUser: false },
+    });
+
+    $('demander').disabled = false;
+
+    if (r.error) {
+      $('erreur').textContent = r.error.message;
+      return;
+    }
+
+    $('etapeCode').hidden = false;
+    $('code').hidden = false;
+    $('valider').hidden = false;
+    $('code').focus();
+  });
+
+  $('valider').addEventListener('click', async function () {
+    $('erreur').textContent = '';
+    $('valider').disabled = true;
+
+    var r = await sb.auth.verifyOtp({
+      email: $('adresseCode').value.trim(),
+      token: $('code').value.trim(),
+      type: 'email',
+    });
+
+    $('valider').disabled = false;
+
+    if (r.error) {
+      $('erreur').textContent = r.error.message;
+      return;
+    }
+
+    $('code').value = '';
     afficherLeBord(true);
     charger();
   });
