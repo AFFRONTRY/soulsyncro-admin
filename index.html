@@ -20,18 +20,39 @@
   fonctions de 0073 lèvent `insufficient_privilege` pour quiconque n'a pas
   `profiles.is_admin`, y compris un compte connecté ordinaire.
 
-  Ce n'est donc jamais le secret de l'URL qui protège. Se croire protégé par
-  une adresse difficile à deviner est la façon ordinaire de se faire
-  surprendre.
-
   ---------------------------------------------------------------------------
   La clé écrite plus bas n'est pas un secret
   ---------------------------------------------------------------------------
 
   `sb_publishable_…` est la clé publiable, déjà compilée dans l'APK et donc
   lisible par quiconque ouvre le fichier d'installation. Sa sécurité repose
-  entièrement sur RLS. Aucune clé de service ne doit JAMAIS figurer ici : elle
-  passerait outre toutes les règles, et cette page est publique.
+  entièrement sur RLS. Aucune clé de service ne doit JAMAIS figurer ici.
+
+  ---------------------------------------------------------------------------
+  Ce que la mise en page respecte, et pourquoi
+  ---------------------------------------------------------------------------
+
+  - **Une seule figure héroïque par vue.** C'est l'âge du plus vieux
+    signalement — le seul chiffre qui se compare à un engagement écrit. Tout
+    le reste est tuile, jauge ou ligne.
+
+  - ⚠️ **Une couleur de statut ne porte jamais le sens toute seule.** Chaque
+    état vient avec un signe ET un mot. La première version coloriait les
+    nombres et rien d'autre : illisible pour qui ne distingue pas le rouge, et
+    mesuré à **1,79:1** de contraste pour l'orange sur fond clair, là où un
+    texte en demande 4,5. Les pas retenus ici tiennent tous au-dessus de 4,5:1
+    sur leur fond réel.
+
+  - **Ce qui est à zéro se replie en une ligne.** Neuf zéros alignés ne disent
+    rien qu'un « rien à signaler » ne dise mieux, et ils enterrent les deux
+    chiffres qui comptent.
+
+  - **La piste d'une jauge est un ton plus clair de la même rampe**, jamais un
+    gris : l'état se lit alors sur toute la barre.
+
+  - `tabular-nums` seulement dans les colonnes du tableau. Sur une figure
+    héroïque, il donne à chaque chiffre la largeur d'un zéro et le nombre
+    paraît distendu.
 
   ---------------------------------------------------------------------------
   Pourquoi `supabase-js` est versionné à côté
@@ -39,7 +60,11 @@
 
   Un outil d'exploitation ne doit pas cesser de fonctionner parce qu'un CDN
   change d'avis, et sa version ne doit pas dériver sans qu'on l'ait décidé.
-  C'est la même raison qui interdit `fonts.googleapis.com` dans l'application.
+
+  ⚠️ Le dossier s'appelle `vendor/`, et GitHub Pages fait passer le site par
+  Jekyll, dont la liste d'exclusion par défaut contient précisément ce nom.
+  D'où le fichier vide `.nojekyll` à la racine : sans lui, la bibliothèque
+  n'est jamais servie, et la construction échoue sans dire pourquoi.
 -->
 
 <style>
@@ -49,10 +74,15 @@
     --trait: #E8DDD2;
     --texte: #2B1D14;
     --doux: #7A6558;
-    --primaire: #B7410E;
-    --alerte: #C0392B;
-    --calme: #1E8449;
-    --attente: #B7791F;
+
+    /* Rampe unique pour les jauges : le remplissage et sa piste. */
+    --accent: #B7410E;
+    --piste: #F5DDD2;
+
+    /* Statuts — mesurés sur #FFFFFF, tous au-dessus de 4,5:1. */
+    --critique: #C0392B;   /* 5,44:1 */
+    --alerte:   #8F5A0E;   /* 5,77:1 */
+    --calme:    #15703B;   /* 6,15:1 */
   }
 
   @media (prefers-color-scheme: dark) {
@@ -62,10 +92,14 @@
       --trait: #3A2C22;
       --texte: #F5EBE2;
       --doux: #B09C8E;
-      --primaire: #E8724A;
-      --alerte: #E8705F;
-      --calme: #5FBF86;
-      --attente: #E0A94A;
+
+      --accent: #E8724A;
+      --piste: #4A2C1E;
+
+      /* Mesurés sur #221913. */
+      --critique: #E8705F;   /* 5,68:1 */
+      --alerte:   #E0A94A;   /* 8,17:1 */
+      --calme:    #5FBF86;   /* 7,63:1 */
     }
   }
 
@@ -73,26 +107,29 @@
 
   body {
     margin: 0;
-    padding: 16px;
+    padding: 14px;
     background: var(--fond);
     color: var(--texte);
-    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
 
-  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 20px; }
-  h1 { font-size: 20px; margin: 0; font-weight: 700; }
-  h2 { font-size: 14px; margin: 0 0 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--doux); }
-
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+  h1 { font-size: 19px; margin: 0; font-weight: 700; }
+  h2 {
+    font-size: 12px; margin: 0 0 14px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--doux);
+  }
   .grandit { flex: 1; }
   .discret { color: var(--doux); font-size: 13px; }
 
   button {
     font: inherit; font-weight: 600; cursor: pointer;
-    padding: 10px 18px; min-height: 44px;
+    padding: 9px 16px; min-height: 44px;
     border: none; border-radius: 10px;
-    background: var(--primaire); color: #FFFFFF;
+    background: var(--accent); color: #FFFFFF;
   }
   button:disabled { opacity: .5; cursor: default; }
+  button.sobre { background: transparent; color: var(--doux); border: 1px solid var(--trait); }
 
   input {
     font: inherit; width: 100%; padding: 12px 14px; min-height: 44px;
@@ -104,41 +141,104 @@
     background: var(--carte);
     border: 1px solid var(--trait);
     border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
   }
 
-  /* Les compteurs : une grille qui se replie toute seule sur 720 pixels. */
-  .chiffres { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-  .chiffre .valeur { font-size: 26px; font-weight: 700; line-height: 1.15; }
-  .chiffre .nom { font-size: 12px; color: var(--doux); }
+  /* ---- La figure héroïque : une seule par vue ------------------------- */
+  .heros { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+  .heros .nombre {
+    font-size: 52px; font-weight: 800; line-height: .95;
+    letter-spacing: -.02em;   /* proportionnel, jamais tabulaire */
+  }
+  .heros .unite { font-size: 20px; font-weight: 700; color: var(--doux); }
+  .heros-legende { color: var(--doux); font-size: 13px; margin: 6px 0 0; }
 
-  .alerte { color: var(--alerte); }
-  .calme  { color: var(--calme); }
-  .attente { color: var(--attente); }
+  /* ---- Le verdict : un signe, un mot, une couleur -------------------- */
+  .verdict {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 12px; padding: 6px 12px 6px 10px;
+    border: 1px solid currentColor; border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+  }
+  .verdict .signe { font-size: 14px; line-height: 1; }
+  .v-critique { color: var(--critique); }
+  .v-alerte   { color: var(--alerte); }
+  .v-calme    { color: var(--calme); }
 
-  /* Le bloc qui décide : plein cadre, et le chiffre qui compte en très gros. */
-  .promesse { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 18px; }
-  .promesse .age { font-size: 40px; font-weight: 800; line-height: 1; }
+  /* ---- Les choses à faire : une ligne chacune ------------------------ */
+  .afaire { list-style: none; margin: 16px 0 0; padding: 0; }
+  .afaire li {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 9px 0; border-top: 1px solid var(--trait);
+  }
+  .afaire .pastille {
+    flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor; transform: translateY(-1px);
+  }
+  .afaire .compte { font-weight: 700; font-size: 17px; min-width: 1.6em; color: var(--texte); }
+  .afaire .quoi { flex: 1; color: var(--texte); }
+  .afaire .apres { color: var(--doux); font-size: 12px; }
+
+  /* ---- Les tuiles ---------------------------------------------------- */
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 14px 12px; }
+  .tuile .valeur { font-size: 24px; font-weight: 700; line-height: 1.1; }
+  .tuile .nom { font-size: 11px; line-height: 1.25; color: var(--doux); }
+
+  /* ---- Les jauges : piste = ton clair de la même rampe --------------- */
+  .jauge { margin-top: 16px; }
+  .jauge-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
+  .jauge-tete .part { color: var(--doux); font-variant-numeric: tabular-nums; }
+  .piste { height: 8px; border-radius: 4px; background: var(--piste); margin-top: 6px; overflow: hidden; }
+  .remplissage { height: 100%; border-radius: 4px; background: var(--accent); }
+
+  /* ---- Le second rang, plus discret ---------------------------------- */
+  .rangs { margin-top: 18px; border-top: 1px solid var(--trait); }
+  .rang { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13px; }
+  .rang + .rang { border-top: 1px solid var(--trait); }
+  .rang .etiquette { color: var(--doux); }
+  .rang .valeur { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* ---- Le tableau : il défile dans son cadre, jamais la page --------- */
+  .cadre { overflow-x: auto; margin: 0 -4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--trait); white-space: nowrap; }
+  th { color: var(--doux); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.barre { width: 34%; min-width: 70px; padding-left: 0; }
+  .minipiste { height: 6px; border-radius: 3px; background: var(--piste); }
+  .miniremplissage { height: 100%; border-radius: 3px; background: var(--accent); }
 
   .note {
-    border-left: 3px solid var(--attente);
-    padding: 10px 14px; margin-top: 14px;
-    color: var(--doux); font-size: 14px;
+    border-left: 3px solid var(--trait);
+    padding: 10px 12px; margin-top: 16px;
+    color: var(--doux); font-size: 13px;
   }
+  .note strong { color: var(--texte); }
 
-  /* Un tableau large défile dans son cadre, jamais la page. */
-  .cadre { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--trait); white-space: nowrap; }
-  th { color: var(--doux); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-
-  #connexion { max-width: 380px; margin: 60px auto; }
+  #connexion, #sansScript { max-width: 400px; margin: 40px auto; }
   #connexion p { color: var(--doux); font-size: 14px; }
-  #connexion input { margin-bottom: 12px; }
-  #connexion button { width: 100%; }
-  #erreur { color: var(--alerte); font-size: 14px; min-height: 20px; }
+  #connexion input { margin-bottom: 10px; }
+  #connexion button[type="submit"] { width: 100%; }
+  #erreur { color: var(--critique); font-size: 14px; }
+
+  @media (max-width: 480px) {
+    body { padding: 10px; }
+    .carte { padding: 14px 12px; margin-bottom: 12px; }
+    .heros .nombre { font-size: 44px; }
+
+    /*
+      ⚠️ Le titre prend une ligne entière, les boutons la suivante.
+
+      Sans cela, `flex: 1` sur le titre pousse les deux boutons hors du
+      cadre : « Actualiser » sortait de l'écran par la droite sur 360 px,
+      et l'en-tête ne se repliait pas malgré `flex-wrap`. Vu en regardant
+      une capture, jamais en relisant la feuille de styles.
+    */
+    .grandit { flex: 1 0 100%; }
+    header { gap: 8px; }
+    header button { flex: 1; padding: 9px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -148,13 +248,8 @@
 
   À l'envers — cachée puis affichée en cas d'erreur — elle ne servirait à rien :
   le cas qu'elle doit couvrir est justement celui où aucun script ne tourne.
-
-  Sans elle, une page dont le script ne part pas montre un formulaire qui ne
-  répond à rien. « Ne fonctionne pas », sans le moindre indice. C'est la règle
-  du 26 août : un geste sans réponse visible se lit comme une panne, et il faut
-  dire laquelle.
 -->
-<section id="sansScript" class="carte" style="border-color:var(--alerte)">
+<section id="sansScript" class="carte" style="border-color:var(--critique)">
   <h1>Le script de cette page n'a pas démarré</h1>
   <p>Deux causes possibles, dans cet ordre de fréquence :</p>
   <p><strong>1. Vous regardez un aperçu qui interdit les scripts.</strong>
@@ -169,6 +264,7 @@
 <section id="connexion" class="carte" hidden>
   <h1>SoulSyncro</h1>
   <p>Tableau de bord d'exploitation. Réservé aux comptes de modération.</p>
+
   <form id="formulaire">
     <input id="adresse" type="email" autocomplete="username" placeholder="Adresse e-mail" required>
     <input id="motdepasse" type="password" autocomplete="current-password" placeholder="Mot de passe" required>
@@ -181,27 +277,24 @@
     « Invalid login credentials » ne distingue pas un mot de passe faux d'un
     compte qui n'en a aucun — les comptes créés par code n'en ont pas. Sans
     cette seconde voie, un tableau de bord réservé au mot de passe est
-    inatteignable pour son propre exploitant, et rien à l'écran ne dit
-    pourquoi.
-
-    C'est la règle de l'écran d'accueil de l'application, appliquée ici.
+    inatteignable pour son propre exploitant.
   -->
-  <p style="margin-top:4px">
+  <p style="margin-top:6px">
     <button type="button" id="basculer"
-      style="background:transparent;color:var(--primaire);padding:8px 0;min-height:0;text-decoration:underline">
+      style="background:transparent;border:none;color:var(--accent);text-decoration:underline;padding:8px 0;min-height:0">
       Recevoir plutôt un code par e-mail
     </button>
   </p>
 
   <form id="formulaireCode" hidden>
     <input id="adresseCode" type="email" autocomplete="username" placeholder="Adresse e-mail" required>
-    <button type="submit" id="demander">Envoyer le code</button>
+    <button type="submit" id="demander" style="width:100%">Envoyer le code</button>
     <p id="etapeCode" class="discret" hidden style="margin-top:12px">
       Le code est parti. Il met parfois quelques minutes à arriver.
     </p>
     <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code à 6 chiffres"
       hidden style="margin-top:12px">
-    <button type="button" id="valider" hidden style="margin-top:12px">Valider le code</button>
+    <button type="button" id="valider" hidden style="width:100%;margin-top:10px">Valider le code</button>
   </form>
 
   <p id="erreur"></p>
@@ -212,7 +305,7 @@
     <h1 class="grandit">SoulSyncro</h1>
     <span class="discret" id="horodatage"></span>
     <button id="actualiser">Actualiser</button>
-    <button id="sortir" style="background:transparent;color:var(--doux)">Sortir</button>
+    <button id="sortir" class="sobre">Sortir</button>
   </header>
   <div id="contenu"></div>
 </main>
@@ -223,11 +316,8 @@
   'use strict';
 
   /*
-    Première chose faite : rendre compte de soi.
-
-    Si l'on arrive ici, le script tourne — la bannière n'a plus lieu d'être.
-    Si `supabase` manque, on le dit **dans** la bannière plutôt que de jeter
-    une erreur que personne n'ouvrira la console pour lire.
+    Première chose faite : rendre compte de soi. Si l'on arrive ici, le script
+    tourne — la bannière n'a plus lieu d'être.
   */
   var banniere = document.getElementById('sansScript');
 
@@ -246,130 +336,240 @@
   var CLE_PUBLIABLE = 'sb_publishable_39J3VhPk3bhiDKkkzEVisw_G_Nu_IA1';
 
   var sb = supabase.createClient(URL_PROJET, CLE_PUBLIABLE);
-
   var $ = function (id) { return document.getElementById(id); };
 
-  function nombre(n) {
+  function nb(n) {
     if (n === null || n === undefined) return '—';
     return Number(n).toLocaleString('fr-FR');
   }
 
-  function echapper(s) {
+  function ech(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
 
-  function chiffre(nom, valeur, classe) {
-    return '<div class="chiffre"><div class="valeur ' + (classe || '') + '">' +
-      echapper(valeur) + '</div><div class="nom">' + echapper(nom) + '</div></div>';
+  /** Une phrase au bon nombre, écrite en entier dans les deux formes. */
+  function accord(n, singulier, pluriel) {
+    return n > 1 ? pluriel : singulier;
   }
 
-  /*
-    Le bloc qui décide d'une action aujourd'hui.
+  function tuile(nom, valeur) {
+    return '<div class="tuile"><div class="valeur">' + ech(valeur) +
+      '</div><div class="nom">' + ech(nom) + '</div></div>';
+  }
 
-    ⚠️ Il vire au rouge à 24 h, pas à 48. La promesse publique est de 48 heures,
-    mais Google Play en attend 24 : c'est la plus stricte qui décide d'une
-    suspension sur la boutique, donc c'est elle qu'on tient.
-  */
+  function rang(etiquette, valeur) {
+    return '<div class="rang"><span class="etiquette">' + ech(etiquette) +
+      '</span><span class="valeur">' + ech(valeur) + '</span></div>';
+  }
+
+  /**
+   * Une jauge.
+   *
+   * ⚠️ La piste est un ton plus clair de la **même** rampe que le
+   * remplissage, jamais un gris : l'état se lit alors sur toute la barre, y
+   * compris sur la portion vide.
+   */
+  function jauge(titre, part, total) {
+    var pct = total > 0 ? Math.round((part / total) * 100) : 0;
+    return '<div class="jauge"><div class="jauge-tete">' +
+      '<span>' + ech(titre) + '</span>' +
+      '<span class="part">' + nb(part) + ' / ' + nb(total) + '  ·  ' + pct + ' %</span>' +
+      '</div><div class="piste"><div class="remplissage" style="width:' + pct + '%"></div></div></div>';
+  }
+
+  /**
+   * Le verdict : un signe, un mot, une couleur — dans cet ordre d'importance.
+   *
+   * ⚠️ La couleur ne porte jamais le sens toute seule. Elle est le troisième
+   * canal, celui qu'on peut retirer sans rien perdre.
+   */
+  function verdict(etat, texte) {
+    var signes = { critique: '▲', alerte: '●', calme: '✓' };
+    return '<span class="verdict v-' + etat + '">' +
+      '<span class="signe" aria-hidden="true">' + signes[etat] + '</span>' +
+      ech(texte) + '</span>';
+  }
+
+  function ligneAFaire(etat, compte, quoi, apres) {
+    return '<li class="v-' + etat + '">' +
+      '<span class="pastille" aria-hidden="true"></span>' +
+      '<span class="compte">' + nb(compte) + '</span>' +
+      '<span class="quoi">' + ech(quoi) + '</span>' +
+      (apres ? '<span class="apres">' + ech(apres) + '</span>' : '') +
+      '</li>';
+  }
+
+  /* ---------------------------------------------------------------------
+     Bloc 1 — ce qui appelle une action
+     --------------------------------------------------------------------- */
   function blocSante(s) {
     var age = s.plus_vieux_signalement_h;
-    var classe = age === null ? 'calme' : age >= 24 ? 'alerte' : age >= 12 ? 'attente' : 'calme';
-    var phrase = age === null
-      ? 'Aucun signalement en attente.'
-      : 'Le plus vieux signalement attend depuis ' + age + ' heures.';
 
-    var html = '<section class="carte"><h2>Ce qui appelle une action</h2>' +
-      '<div class="promesse"><span class="age ' + classe + '">' +
-      (age === null ? '—' : age + ' h') + '</span>' +
-      '<span class="discret">' + echapper(phrase) +
-      ' Promesse publique : 48 h. Attente de Google Play : 24 h.</span></div>' +
-      '<div class="chiffres">' +
-      chiffre('signalements en attente', nombre(s.signalements_en_attente),
-        s.signalements_en_attente > 0 ? 'attente' : 'calme') +
-      chiffre('au-delà de 24 h', nombre(s.signalements_plus_24h),
-        s.signalements_plus_24h > 0 ? 'alerte' : 'calme') +
-      chiffre('au-delà de 48 h', nombre(s.signalements_plus_48h),
-        s.signalements_plus_48h > 0 ? 'alerte' : 'calme') +
-      chiffre('images à juger', nombre(s.images_en_attente)) +
-      chiffre('demandes de badge', nombre(s.badges_en_attente)) +
-      chiffre('profils suspects', nombre(s.profils_suspects)) +
-      chiffre('notifications en attente', nombre(s.push_en_attente)) +
-      chiffre('notifications en échec', nombre(s.push_en_echec),
-        s.push_en_echec > 0 ? 'alerte' : '') +
-      chiffre('fichiers à effacer', nombre(s.fichiers_restants)) +
-      chiffre('fichiers retenus', nombre(s.fichiers_retenus)) +
-      chiffre('plantages non traités', nombre(s.plantages_non_traites),
-        s.plantages_non_traites > 0 ? 'attente' : 'calme') +
-      chiffre('occurrences du pire', nombre(s.plantage_max_occurrences)) +
-      '</div>';
+    /*
+      ⚠️ Le seuil est 24 h, pas 48. La promesse publique est de 48 heures,
+      mais Google Play en attend 24 : c'est la plus stricte qui décide d'une
+      suspension sur la boutique, donc c'est elle qu'on tient.
+    */
+    var etat = age === null ? 'calme' : age >= 24 ? 'critique' : age >= 12 ? 'alerte' : 'calme';
 
+    var html = '<section class="carte"><h2>Ce qui appelle une action</h2>';
+
+    if (age === null) {
+      html += '<div class="heros"><span class="nombre v-calme">0</span>' +
+        '<span class="unite">en attente</span></div>' +
+        '<p class="heros-legende">Aucun signalement à traiter.</p>' +
+        verdict('calme', 'Dans les délais');
+    } else {
+      html += '<div class="heros"><span class="nombre v-' + etat + '">' +
+        Math.round(age) + '</span><span class="unite">heures</span></div>' +
+        '<p class="heros-legende">Le plus vieux signalement non traité. ' +
+        'Promesse publique : 48 h. Attente de Google Play : 24 h.</p>' +
+        verdict(etat,
+          etat === 'critique' ? 'Au-delà des 24 h de Google Play'
+            : etat === 'alerte' ? 'Moins de 12 h de marge'
+            : 'Dans les délais');
+    }
+
+    /*
+      ⚠️ Ce qui est à zéro ne s'affiche pas, il se replie.
+
+      Neuf zéros alignés ne disent rien qu'un « rien à signaler » ne dise
+      mieux — et ils enterrent les deux chiffres qui appellent un geste.
+    */
+    var travaux = [
+      { n: s.signalements_en_attente, etat: s.signalements_plus_24h > 0 ? 'critique' : 'alerte',
+        quoi: accord(s.signalements_en_attente, 'signalement à traiter', 'signalements à traiter'),
+        apres: s.signalements_plus_24h > 0 ? s.signalements_plus_24h + ' au-delà de 24 h' : '',
+        nom: 'signalements' },
+      { n: s.images_en_attente, etat: 'alerte',
+        quoi: accord(s.images_en_attente, 'image à juger', 'images à juger'), nom: 'images' },
+      { n: s.badges_en_attente, etat: 'alerte',
+        quoi: accord(s.badges_en_attente, 'demande de badge', 'demandes de badge'), nom: 'badges' },
+      { n: s.profils_suspects, etat: 'alerte',
+        quoi: accord(s.profils_suspects, 'profil à regarder', 'profils à regarder'), nom: 'profils suspects' },
+      { n: s.push_en_echec, etat: 'critique',
+        quoi: accord(s.push_en_echec, 'notification en échec', 'notifications en échec'), nom: 'notifications' },
+      { n: s.plantages_non_traites, etat: 'alerte',
+        quoi: accord(s.plantages_non_traites, 'plantage à examiner', 'plantages à examiner'),
+        apres: s.plantage_max_occurrences > 1 ? 'le pire vu ' + s.plantage_max_occurrences + ' fois' : '',
+        nom: 'plantages' },
+      { n: s.fichiers_restants, etat: 'alerte',
+        quoi: accord(s.fichiers_restants, 'fichier à effacer', 'fichiers à effacer'), nom: 'fichiers' }
+    ];
+
+    var afaire = travaux.filter(function (t) { return t.n > 0; });
+    var calmes = travaux.filter(function (t) { return !(t.n > 0); });
+
+    if (afaire.length > 0) {
+      html += '<ul class="afaire">' + afaire.map(function (t) {
+        return ligneAFaire(t.etat, t.n, t.quoi, t.apres);
+      }).join('') + '</ul>';
+    }
+
+    if (calmes.length > 0) {
+      html += '<p class="note" style="border-color:var(--calme)">' +
+        verdict('calme', 'Rien à signaler') + '<br>' +
+        ech(calmes.map(function (t) { return t.nom; }).join(', ')) + '.</p>';
+    }
+
+    /*
+      Les fichiers « retenus » ne sont pas un retard : une ligne les cite
+      encore. Ne le dire que lorsqu'il y en a, sinon c'est du bruit.
+    */
     if (s.fichiers_retenus > 0) {
-      html += '<p class="note">Les fichiers <em>retenus</em> ne sont pas en retard : ' +
-        'une ligne les cite encore — souvent la pièce d\'un dossier de modération. ' +
-        'Le ménage les laisse volontairement en place.</p>';
+      html += '<p class="note"><strong>' + nb(s.fichiers_retenus) + ' ' +
+        ech(accord(s.fichiers_retenus, 'fichier retenu', 'fichiers retenus')) +
+        '.</strong> Ce n\'est pas un retard : une ligne les cite encore — ' +
+        'souvent la pièce d\'un dossier de modération. Le ménage les laisse ' +
+        'volontairement en place.</p>';
     }
 
     return html + '</section>';
   }
 
+  /* ---------------------------------------------------------------------
+     Bloc 2 — ce que devient l'application
+     --------------------------------------------------------------------- */
   function blocUsage(u) {
     var abandon = u.inscrits - u.profils_termines;
-    return '<section class="carte"><h2>Ce que devient l\'application</h2><div class="chiffres">' +
-      chiffre('inscrits', nombre(u.inscrits)) +
-      chiffre('profils terminés', nombre(u.profils_termines)) +
-      chiffre('inscriptions non terminées', nombre(abandon), abandon > 0 ? 'attente' : 'calme') +
-      chiffre("aujourd'hui", nombre(u.inscrits_jour)) +
-      chiffre('sur 7 jours', nombre(u.inscrits_7j)) +
-      chiffre('sur 30 jours', nombre(u.inscrits_30j)) +
-      chiffre('actifs 7 jours', nombre(u.actifs_7j)) +
-      chiffre('actifs 30 jours', nombre(u.actifs_30j)) +
-      chiffre('matchs', nombre(u.matchs)) +
-      chiffre('matchs sur 7 jours', nombre(u.matchs_7j)) +
-      chiffre('messages', nombre(u.messages)) +
-      chiffre('messages sur 7 jours', nombre(u.messages_7j)) +
-      chiffre('publications', nombre(u.publications)) +
-      chiffre('statuts visibles', nombre(u.statuts_visibles)) +
-      chiffre('bannis', nombre(u.bannis)) +
-      chiffre('comptes supprimés', nombre(u.comptes_supprimes)) +
+
+    return '<section class="carte"><h2>Ce que devient l\'application</h2>' +
+      '<div class="tuiles">' +
+      tuile('inscrits', nb(u.inscrits)) +
+      tuile('actifs sur 30 jours', nb(u.actifs_30j)) +
+      tuile('matchs', nb(u.matchs)) +
+      tuile('messages', nb(u.messages)) +
       '</div>' +
-      '<p class="note">L\'écart entre inscrits et profils terminés est l\'abandon ' +
-      'en cours d\'inscription. C\'est le chiffre à surveiller après toute retouche ' +
-      'du parcours — la photo obligatoire en est l\'étape la plus exposée.</p>' +
+
+      jauge('Inscription terminée', u.profils_termines, u.inscrits) +
+      jauge('Actifs sur 30 jours', u.actifs_30j, u.inscrits) +
+
+      '<div class="rangs">' +
+      rang("Inscriptions aujourd'hui", nb(u.inscrits_jour)) +
+      rang('Inscriptions sur 7 jours', nb(u.inscrits_7j)) +
+      rang('Actifs sur 7 jours', nb(u.actifs_7j)) +
+      rang('Matchs sur 7 jours', nb(u.matchs_7j)) +
+      rang('Messages sur 7 jours', nb(u.messages_7j)) +
+      rang('Publications', nb(u.publications)) +
+      rang('Statuts encore visibles', nb(u.statuts_visibles)) +
+      rang('Comptes bannis', nb(u.bannis)) +
+      rang('Comptes supprimés', nb(u.comptes_supprimes)) +
+      '</div>' +
+
+      (abandon > 0
+        ? '<p class="note"><strong>' + nb(abandon) + ' ' +
+          ech(accord(abandon, 'inscription commencée et non terminée',
+            'inscriptions commencées et non terminées')) + '.</strong> ' +
+          'C\'est le chiffre à surveiller après toute retouche du parcours — ' +
+          'la photo obligatoire en est l\'étape la plus exposée.</p>'
+        : '') +
       '</section>';
   }
 
+  /* ---------------------------------------------------------------------
+     Bloc 3 — la densité
+     --------------------------------------------------------------------- */
   function blocDensite(lignes) {
+    /*
+      Douze communes, donc un tableau : au-delà de sept classes, des couleurs
+      supplémentaires ne distinguent plus rien. La barre reste dans une seule
+      teinte, proportionnelle au maximum observé.
+    */
+    var max = lignes.reduce(function (m, l) { return Math.max(m, l.termines); }, 0);
+
     var corps = lignes.map(function (l) {
-      return '<tr><td>' + echapper(l.ville) + '</td><td>' + echapper(l.commune) + '</td>' +
-        '<td class="n">' + nombre(l.inscrits) + '</td>' +
-        '<td class="n">' + nombre(l.termines) + '</td>' +
-        '<td class="n">' + nombre(l.actifs_30j) + '</td></tr>';
+      var pct = max > 0 ? Math.round((l.termines / max) * 100) : 0;
+      return '<tr><td>' + ech(l.ville) + '</td><td>' + ech(l.commune) + '</td>' +
+        '<td class="n">' + nb(l.termines) + '</td>' +
+        '<td class="barre"><div class="minipiste"><div class="miniremplissage" style="width:' +
+        pct + '%"></div></div></td>' +
+        '<td class="n">' + nb(l.actifs_30j) + '</td></tr>';
     }).join('');
 
     return '<section class="carte"><h2>Où la densité permet d\'ouvrir</h2>' +
       '<div class="cadre"><table><thead><tr>' +
-      '<th>Ville</th><th>Commune</th><th class="n">Inscrits</th>' +
-      '<th class="n">Terminés</th><th class="n">Actifs 30 j</th>' +
-      '</tr></thead><tbody>' + (corps || '<tr><td colspan="5">Personne encore.</td></tr>') +
+      '<th>Ville</th><th>Commune</th><th class="n">Terminés</th><th></th>' +
+      '<th class="n">Actifs 30 j</th>' +
+      '</tr></thead><tbody>' +
+      (corps || '<tr><td colspan="5">Personne encore.</td></tr>') +
       '</tbody></table></div>' +
-      '<p class="note">Ce sont les <strong>profils terminés</strong> qui font la densité, ' +
-      'pas les inscrits : un compte sans photo ni test n\'apparaît dans la découverte ' +
-      'de personne. Ouvrir une ville sur le nombre d\'inscrits ferait remplir de la ' +
-      'publicité vers un fil vide.</p></section>';
+      '<p class="note">Ce sont les <strong>profils terminés</strong> qui font la ' +
+      'densité, pas les inscrits : un compte sans photo ni test n\'apparaît dans ' +
+      'la découverte de personne. Ouvrir une ville sur le nombre d\'inscrits ' +
+      'ferait payer de la publicité vers un fil vide.</p></section>';
   }
 
+  /* ---------------------------------------------------------------------
+     Bloc 4 — les paliers
+     --------------------------------------------------------------------- */
   function blocArgent(a) {
-    var html = '<section class="carte"><h2>Les paliers</h2><div class="chiffres">' +
-      chiffre('abonnés VIP', nombre(a.abonnes_vip)) +
-      chiffre('abonnés Premium', nombre(a.abonnes_premium)) +
-      chiffre('veulent le VIP', nombre(a.interets_vip)) +
-      chiffre('veulent le Premium', nombre(a.interets_premium)) +
-      chiffre('paiements réussis ce mois', nombre(a.paiements_reussis_mois)) +
-      chiffre('recettes du mois (FCFA)', nombre(a.recettes_mois_fcfa)) +
-      chiffre('paiements échoués', nombre(a.paiements_echoues_mois),
-        a.paiements_echoues_mois > 0 ? 'alerte' : '') +
-      chiffre('paiements en attente', nombre(a.paiements_en_attente)) +
+    var html = '<section class="carte"><h2>Les paliers</h2><div class="tuiles">' +
+      tuile('abonnés VIP', nb(a.abonnes_vip)) +
+      tuile('abonnés Premium', nb(a.abonnes_premium)) +
+      tuile('veulent le VIP', nb(a.interets_vip)) +
+      tuile('veulent le Premium', nb(a.interets_premium)) +
       '</div>';
 
     /*
@@ -377,23 +577,32 @@
 
       « 0 FCFA » se lit « personne ne paie ». La vérité est « on n'encaisse pas
       encore » — deux situations opposées, dont la seconde n'appelle aucune
-      inquiétude.
+      inquiétude. Les compteurs de paiement ne s'affichent donc pas du tout
+      tant que l'encaissement est fermé : un chiffre juste qui induit une
+      conclusion fausse est pire qu'un chiffre absent.
     */
-    if (!a.encaissement_ouvert) {
-      html += '<p class="note"><strong>L\'encaissement n\'est pas ouvert.</strong> ' +
-        'Aucun agrégateur mobile money n\'est branché : les clés manquent dans les ' +
-        'secrets Supabase, et le paiement se déclare indisponible plutôt que de ' +
-        'laisser passer. Ces zéros ne disent donc rien du produit. ' +
-        'Les deux chiffres qui parlent aujourd\'hui sont les <em>intentions</em>, ' +
-        'recueillies avant qu\'un encaissement existe.</p>';
+    if (a.encaissement_ouvert) {
+      html += '<div class="rangs">' +
+        rang('Paiements réussis ce mois', nb(a.paiements_reussis_mois)) +
+        rang('Recettes du mois', nb(a.recettes_mois_fcfa) + ' FCFA') +
+        rang('Paiements échoués ce mois', nb(a.paiements_echoues_mois)) +
+        rang('Paiements en attente', nb(a.paiements_en_attente)) +
+        '</div>';
+    } else {
+      html += '<p class="note" style="border-color:var(--alerte)">' +
+        verdict('alerte', 'Encaissement fermé') + '<br>' +
+        'Aucun agrégateur mobile money n\'est branché : les clés manquent dans ' +
+        'les secrets Supabase, et le paiement se déclare indisponible plutôt ' +
+        'que de laisser passer. Les deux chiffres qui parlent aujourd\'hui sont ' +
+        'les <strong>intentions</strong>, recueillies avant qu\'un encaissement existe.</p>';
     }
 
     return html + '</section>';
   }
 
   function montrer(section, message) {
-    $('contenu').innerHTML = '<section class="carte"><h2>' + echapper(section) +
-      '</h2><p class="alerte">' + echapper(message) + '</p></section>';
+    $('contenu').innerHTML = '<section class="carte"><h2>' + ech(section) +
+      '</h2><p>' + verdict('critique', message) + '</p></section>';
   }
 
   async function charger() {
@@ -405,19 +614,13 @@
         sb.rpc('tableau_sante'),
         sb.rpc('tableau_usage'),
         sb.rpc('tableau_densite'),
-        sb.rpc('tableau_argent'),
+        sb.rpc('tableau_argent')
       ]);
 
       var enPanne = r.find(function (x) { return x.error; });
       if (enPanne) {
-        /*
-          42501 : le compte est connecté mais n'est pas modérateur. Le dire
-          franchement — un tableau vide se lit comme une panne, et l'on
-          chercherait le défaut du mauvais côté.
-        */
         if (enPanne.error.code === '42501') {
-          montrer('Accès refusé',
-            "Ce compte n'est pas modérateur. Il faut is_admin sur le profil.");
+          montrer('Accès refusé', "Ce compte n'est pas modérateur (is_admin).");
         } else {
           montrer('Lecture impossible', enPanne.error.message);
         }
@@ -451,22 +654,19 @@
 
     var r = await sb.auth.signInWithPassword({
       email: $('adresse').value.trim(),
-      password: $('motdepasse').value,
+      password: $('motdepasse').value
     });
 
     $('entrer').disabled = false;
 
     if (r.error) {
       /*
-        ⚠️ Nommer la seconde porte, toujours.
-
-        Ce message ne peut PAS distinguer un mot de passe faux d'un compte qui
-        n'en a aucun : Supabase rend la même phrase dans les deux cas, à
-        dessein. Écrire « mot de passe incorrect » tout court envoie donc
-        chercher un mot de passe à quelqu'un qui n'en a jamais eu.
+        ⚠️ Nommer la seconde porte, toujours. Ce message ne peut PAS distinguer
+        un mot de passe faux d'un compte qui n'en a aucun : Supabase rend la
+        même phrase dans les deux cas, à dessein.
       */
       $('erreur').textContent = r.error.message === 'Invalid login credentials'
-        ? "Adresse ou mot de passe incorrect — ou ce compte n'a pas de mot de passe. Utilise le code par e-mail ci-dessous."
+        ? "Adresse ou mot de passe incorrect — ou ce compte n'a pas de mot de passe. Utilise le code par e-mail ci-dessus."
         : r.error.message;
       return;
     }
@@ -476,14 +676,6 @@
     charger();
   });
 
-  /*
-    La seconde porte : le code par e-mail.
-
-    `shouldCreateUser: false` — cette page ne crée jamais de compte. Un e-mail
-    inconnu doit obtenir une phrase, pas un compte vide que personne n'a
-    demandé, et surtout pas un compte sans droits qui ferait croire à une
-    panne du tableau.
-  */
   $('basculer').addEventListener('click', function () {
     var versCode = $('formulaireCode').hidden;
     $('formulaireCode').hidden = !versCode;
@@ -500,17 +692,19 @@
     $('erreur').textContent = '';
     $('demander').disabled = true;
 
+    /*
+      `shouldCreateUser: false` — cette page ne crée jamais de compte. Un
+      e-mail inconnu obtiendrait sinon un compte vide et sans droits, ce qui
+      se lirait comme une panne du tableau.
+    */
     var r = await sb.auth.signInWithOtp({
       email: $('adresseCode').value.trim(),
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false }
     });
 
     $('demander').disabled = false;
 
-    if (r.error) {
-      $('erreur').textContent = r.error.message;
-      return;
-    }
+    if (r.error) { $('erreur').textContent = r.error.message; return; }
 
     $('etapeCode').hidden = false;
     $('code').hidden = false;
@@ -525,15 +719,12 @@
     var r = await sb.auth.verifyOtp({
       email: $('adresseCode').value.trim(),
       token: $('code').value.trim(),
-      type: 'email',
+      type: 'email'
     });
 
     $('valider').disabled = false;
 
-    if (r.error) {
-      $('erreur').textContent = r.error.message;
-      return;
-    }
+    if (r.error) { $('erreur').textContent = r.error.message; return; }
 
     $('code').value = '';
     afficherLeBord(true);
@@ -549,15 +740,12 @@
   });
 
   /*
-    La session survit à la fermeture de l'onglet : on reprend là où l'on était,
-    sans redemander le mot de passe. Pas de chargement automatique tant qu'il
-    n'y a pas de session — la page ne dépense rien avant d'être utilisée.
+    La session survit à la fermeture de l'onglet : on reprend là où l'on était.
+    Aucun chargement automatique sans session — la page ne dépense rien avant
+    d'être utilisée, ce qui compte sur un forfait payé au mégaoctet.
   */
   sb.auth.getSession().then(function (r) {
-    if (r.data.session) {
-      afficherLeBord(true);
-      charger();
-    }
+    if (r.data.session) { afficherLeBord(true); charger(); }
   });
 })();
 </script>
