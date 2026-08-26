@@ -143,7 +143,30 @@
 </head>
 <body>
 
-<section id="connexion" class="carte">
+<!--
+  ⚠️ Cette bannière est visible PAR DÉFAUT, et le script la retire au démarrage.
+
+  À l'envers — cachée puis affichée en cas d'erreur — elle ne servirait à rien :
+  le cas qu'elle doit couvrir est justement celui où aucun script ne tourne.
+
+  Sans elle, une page dont le script ne part pas montre un formulaire qui ne
+  répond à rien. « Ne fonctionne pas », sans le moindre indice. C'est la règle
+  du 26 août : un geste sans réponse visible se lit comme une panne, et il faut
+  dire laquelle.
+-->
+<section id="sansScript" class="carte" style="border-color:var(--alerte)">
+  <h1>Le script de cette page n'a pas démarré</h1>
+  <p>Deux causes possibles, dans cet ordre de fréquence :</p>
+  <p><strong>1. Vous regardez un aperçu qui interdit les scripts.</strong>
+     L'aperçu intégré d'un éditeur de code — VS Code, par exemple — les bloque.
+     Ouvrez le fichier dans un vrai navigateur : clic droit, « Ouvrir avec »,
+     puis Chrome ou Edge.</p>
+  <p><strong>2. Le dossier <code>vendor/</code> n'est pas à côté de cette
+     page.</strong> <code>index.html</code> et <code>vendor/</code> voyagent
+     ensemble, toujours.</p>
+</section>
+
+<section id="connexion" class="carte" hidden>
   <h1>SoulSyncro</h1>
   <p>Tableau de bord d'exploitation. Réservé aux comptes de modération.</p>
   <form id="formulaire">
@@ -168,6 +191,26 @@
 <script>
 (function () {
   'use strict';
+
+  /*
+    Première chose faite : rendre compte de soi.
+
+    Si l'on arrive ici, le script tourne — la bannière n'a plus lieu d'être.
+    Si `supabase` manque, on le dit **dans** la bannière plutôt que de jeter
+    une erreur que personne n'ouvrira la console pour lire.
+  */
+  var banniere = document.getElementById('sansScript');
+
+  if (typeof supabase === 'undefined') {
+    banniere.innerHTML = '<h1>La bibliothèque n\'a pas été chargée</h1>' +
+      '<p>Le fichier <code>vendor/supabase-2.112.2.js</code> est introuvable. ' +
+      'Il doit se trouver dans un dossier <code>vendor/</code> juste à côté de ' +
+      'cette page — les deux voyagent ensemble.</p>';
+    return;
+  }
+
+  banniere.remove();
+  document.getElementById('connexion').hidden = false;
 
   var URL_PROJET = 'https://pezfgziqkqhoyazlrxrd.supabase.co';
   var CLE_PUBLIABLE = 'sb_publishable_39J3VhPk3bhiDKkkzEVisw_G_Nu_IA1';
