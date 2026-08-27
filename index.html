@@ -21,6 +21,23 @@
   `profiles.is_admin`, y compris un compte connecté ordinaire.
 
   ---------------------------------------------------------------------------
+  Depuis le 27 août 2026, cette page agit, elle ne lit plus seulement
+  ---------------------------------------------------------------------------
+
+  Cinq onglets appellent des fonctions d'écriture : `traiter_signalement`,
+  `bannir_profil`, `decider_verification`, `classer_plantage`, et l'Edge
+  Function `nettoyer-fichiers`. Aucune n'est nouvelle — ce sont exactement les
+  fonctions qu'appelle `app/moderation.tsx` et `app/plantages.tsx` depuis le
+  téléphone, et elles se revérifient de la même façon, dans leur propre corps.
+  Cette page n'ouvre donc aucun droit qui n'existait pas : c'est un second
+  bouton pour un geste déjà éprouvé.
+
+  ⚠️ **Un seul geste se confirme avant de partir : bannir.** C'est la seule
+  frontière que le téléphone trace lui-même (`app/moderation.tsx`), et le web
+  la reprend à l'identique — ni plus strict, ni plus permissif. Tout le reste
+  part au premier clic, et se lit dans la ligne d'état de chaque onglet.
+
+  ---------------------------------------------------------------------------
   La clé écrite plus bas n'est pas un secret
   ---------------------------------------------------------------------------
 
@@ -79,6 +96,19 @@
     --accent: #B7410E;
     --piste: #F5DDD2;
 
+    /*
+      ⚠️ L'encre posée SUR l'accent, mesurée contre l'accent de chaque thème.
+
+      Le blanc ne convient qu'au thème clair. Sur l'accent du thème sombre
+      (`#E8724A`, plus lumineux), il tombe à **3,03:1** — sous les 4,5 exigés
+      d'un texte. Le jeton bascule donc avec le thème, au lieu d'être écrit
+      en dur dans la règle du bouton, ce qui était le cas jusqu'au
+      27 août 2026 : tous les boutons de cette page ont porté ce défaut
+      depuis leur première version.
+    */
+    --surAccent: #FFFFFF;     /* 5,56:1 sur #B7410E */
+    --surCritique: #FFFFFF;   /* 5,44:1 sur #C0392B */
+
     /* Statuts — mesurés sur #FFFFFF, tous au-dessus de 4,5:1. */
     --critique: #C0392B;   /* 5,44:1 */
     --alerte:   #8F5A0E;   /* 5,77:1 */
@@ -95,6 +125,8 @@
 
       --accent: #E8724A;
       --piste: #4A2C1E;
+      --surAccent: #17110D;     /* 6,18:1 sur #E8724A — le blanc n'y vaudrait que 3,03 */
+      --surCritique: #17110D;   /* 6,16:1 sur #E8705F — le blanc n'y vaudrait que 3,04 */
 
       /* Mesurés sur #221913. */
       --critique: #E8705F;   /* 5,68:1 */
@@ -126,7 +158,7 @@
     font: inherit; font-weight: 600; cursor: pointer;
     padding: 9px 16px; min-height: 44px;
     border: none; border-radius: 10px;
-    background: var(--accent); color: #FFFFFF;
+    background: var(--accent); color: var(--surAccent);
   }
   button:disabled { opacity: .5; cursor: default; }
   button.sobre { background: transparent; color: var(--doux); border: 1px solid var(--trait); }
@@ -222,6 +254,137 @@
   #connexion button[type="submit"] { width: 100%; }
   #erreur { color: var(--critique); font-size: 14px; }
 
+  /* ---- Les onglets : une rangée qui défile, jamais la page ------------ */
+  .onglets {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+    margin-bottom: 14px; -webkit-overflow-scrolling: touch;
+  }
+  .onglet {
+    flex: 0 0 auto; background: transparent; color: var(--doux);
+    border: 1px solid var(--trait); padding: 8px 14px; min-height: 40px;
+    border-radius: 999px; font-size: 13px; font-weight: 600;
+  }
+  .onglet.actif { background: var(--accent); color: var(--surAccent); border-color: var(--accent); }
+
+  /* ---- L'en-tête d'un panneau : titre, filtre, actualiser ------------- */
+  .panneau-tete {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .panneau-tete select {
+    font: inherit; padding: 8px 10px; min-height: 40px;
+    border: 1px solid var(--trait); border-radius: 10px;
+    background: var(--carte); color: var(--texte);
+  }
+  .panneau-tete button.petit { padding: 8px 12px; min-height: 40px; font-size: 13px; }
+
+  /* ---- La ligne d'état d'un panneau : transitoire, jamais muette ------ */
+  .panneau-etat:empty { display: none; }
+  .panneau-etat { margin-bottom: 10px; }
+
+  /* ---- Une fiche d'action : le motif d'une file à trancher ------------ */
+  .fiche { }
+  .fiche-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .fiche-tete .etiquette { font-weight: 700; }
+  .fiche-vide { color: var(--doux); font-size: 13px; }
+  .pastille-attention {
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    background: var(--piste); color: var(--alerte);
+  }
+  .fiche-contenu {
+    background: var(--fond); border: 1px solid var(--trait); border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; white-space: pre-wrap;
+  }
+  .fiche-image, .fiche-image-duo img {
+    display: block; max-width: 220px; max-height: 220px; width: auto;
+    border-radius: 8px; border: 1px solid var(--trait); margin-top: 8px;
+    object-fit: cover;
+  }
+  .fiche-image-duo { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .fiche-image-duo figure { margin: 0; }
+  .fiche-image-duo figcaption { font-size: 11px; color: var(--doux); margin-top: 4px; }
+  .fiche-image-vide {
+    display: flex; align-items: center; justify-content: center;
+    width: 140px; height: 140px; border: 1px dashed var(--trait); border-radius: 8px;
+    color: var(--doux); font-size: 12px; margin-top: 8px;
+  }
+  .fiche-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .fiche-actions button { font-size: 13px; padding: 8px 14px; min-height: 40px; }
+  /*
+    ⚠️ **Le geste destructeur se distingue par la forme, jamais par la teinte.**
+
+    Mesuré le 27 août 2026 : `--accent` et `--critique` ne sont séparés que
+    de **1,00:1** en thème sombre et 1,02:1 en clair. Deux boutons pleins,
+    l'un accent l'autre critique, sont donc rigoureusement indiscernables —
+    « Bannir ce compte » avait exactement l'aspect de « Marquer traité »,
+    juste à côté de lui.
+
+    Un contour au lieu d'un aplat sépare les deux d'un coup d'œil, et fait
+    tomber le problème de contraste avec : le texte critique se lit sur le
+    fond de la carte, où il vaut 5,44:1 en clair et 5,68:1 en sombre. C'est
+    aussi ce que fait le téléphone, dont le bouton « Bannir » est un contour
+    et non un aplat.
+  */
+  button.danger {
+    background: transparent; color: var(--critique);
+    border: 1px solid var(--critique);
+  }
+
+  /* ---- Un motif de refus, texte libre, avant de confirmer ------------- */
+  textarea.motif {
+    font: inherit; width: 100%; padding: 10px 12px; min-height: 60px;
+    border: 1px solid var(--trait); border-radius: 10px; resize: vertical;
+    background: var(--carte); color: var(--texte); margin-top: 8px;
+  }
+
+  /* ---- Le détail dépliable d'un plantage ------------------------------ */
+  .fiche summary { cursor: pointer; font-size: 13px; color: var(--doux); margin-top: 8px; }
+  .fiche pre {
+    white-space: pre-wrap; word-break: break-word; font-size: 12px;
+    background: var(--fond); border: 1px solid var(--trait); border-radius: 8px;
+    padding: 8px 10px; margin-top: 6px;
+  }
+
+  /* ---- La modale de confirmation : un seul geste la déclenche --------- */
+  .voile {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; z-index: 10;
+  }
+  /*
+    ⚠️ **Sans cette ligne, la modale ne se ferme jamais.**
+
+    `[hidden]` ne vaut que `display: none` dans la feuille du navigateur, et
+    n'importe quelle règle d'auteur qui pose un `display` l'emporte sur elle.
+    La modale restait donc affichée en permanence, son voile noir par-dessus
+    toute la page — et les deux boutons « Annuler / Bannir » flottaient sous
+    la dernière carte, sans titre ni texte, attendant un clic que personne
+    n'avait demandé.
+
+    Vu en regardant une capture, jamais en relisant la feuille de styles :
+    la règle `.voile` et l'attribut `hidden` sont justes chacun de leur côté.
+  */
+  .voile[hidden] { display: none; }
+  .modale-boite {
+    background: var(--carte); border-radius: 14px; padding: 20px;
+    max-width: 420px; width: 100%;
+  }
+  .modale-boite h2 { font-size: 17px; margin: 0 0 10px; }
+  .modale-boite p { font-size: 14px; color: var(--doux); white-space: pre-line; }
+  .modale-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+
+  /*
+    Dans la modale, le bouton qui tranche redevient un aplat.
+
+    Le contour est ce qui distingue un geste destructeur **au milieu d'une
+    rangée d'autres gestes** ; ici il n'y a que deux boutons, on a déjà lu
+    l'avertissement, et deux contours côte à côte n'auraient plus de
+    hiérarchie. L'encre est mesurée sur le critique de chaque thème.
+  */
+  .modale-actions button.danger {
+    background: var(--critique); color: var(--surCritique); border-color: var(--critique);
+  }
+
   @media (max-width: 480px) {
     body { padding: 10px; }
     .carte { padding: 14px 12px; margin-bottom: 12px; }
@@ -238,6 +401,8 @@
     .grandit { flex: 1 0 100%; }
     header { gap: 8px; }
     header button { flex: 1; padding: 9px 10px; }
+    .onglet { padding: 8px 12px; font-size: 12px; }
+    .fiche-image, .fiche-image-vide { max-width: 100%; width: 140px; }
   }
 </style>
 </head>
@@ -307,8 +472,84 @@
     <button id="actualiser">Actualiser</button>
     <button id="sortir" class="sobre">Sortir</button>
   </header>
-  <div id="contenu"></div>
+
+  <nav class="onglets" id="onglets">
+    <button type="button" class="onglet actif" data-onglet="ensemble">Vue d'ensemble</button>
+    <button type="button" class="onglet" data-onglet="signalements">Signalements</button>
+    <button type="button" class="onglet" data-onglet="badges">Badges</button>
+    <button type="button" class="onglet" data-onglet="suspects">Profils suspects</button>
+    <button type="button" class="onglet" data-onglet="plantages">Plantages</button>
+    <button type="button" class="onglet" data-onglet="fichiers">Fichiers</button>
+  </nav>
+
+  <div class="panneau" data-panneau="ensemble">
+    <div id="contenu"></div>
+  </div>
+
+  <div class="panneau" data-panneau="signalements" hidden>
+    <div class="panneau-tete">
+      <select id="filtreSignalements">
+        <option value="nouveau">Nouveaux</option>
+        <option value="en_cours">En cours</option>
+        <option value="traite">Traités</option>
+        <option value="rejete">Rejetés</option>
+      </select>
+      <button type="button" class="sobre petit" id="actualiserSignalements">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatSignalements"></div>
+    <div id="listeSignalements"></div>
+  </div>
+
+  <div class="panneau" data-panneau="badges" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserBadges">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatBadges"></div>
+    <div id="listeBadges"></div>
+  </div>
+
+  <div class="panneau" data-panneau="suspects" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserSuspects">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatSuspects"></div>
+    <div id="listeSuspects"></div>
+  </div>
+
+  <div class="panneau" data-panneau="plantages" hidden>
+    <div class="panneau-tete">
+      <select id="filtrePlantages">
+        <option value="ouverts">À regarder</option>
+        <option value="classes">Classés</option>
+      </select>
+      <button type="button" class="sobre petit" id="actualiserPlantages">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatPlantages"></div>
+    <div id="listePlantages"></div>
+  </div>
+
+  <div class="panneau" data-panneau="fichiers" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserFichiers">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatFichiers"></div>
+    <div id="contenuFichiers"></div>
+  </div>
 </main>
+
+<div class="voile" id="modale" hidden>
+  <div class="modale-boite">
+    <h2 id="modaleTitre"></h2>
+    <p id="modaleTexte"></p>
+    <div class="modale-actions">
+      <button type="button" class="sobre" id="modaleAnnuler">Annuler</button>
+      <button type="button" class="danger" id="modaleConfirmer">Bannir</button>
+    </div>
+  </div>
+</div>
 
 <script src="./vendor/supabase-2.112.2.js"></script>
 <script>
@@ -399,6 +640,132 @@
       '<span class="quoi">' + ech(quoi) + '</span>' +
       (apres ? '<span class="apres">' + ech(apres) + '</span>' : '') +
       '</li>';
+  }
+
+  /* ---------------------------------------------------------------------
+     Les cinq onglets d'action — de la lecture à la gestion (27 août 2026)
+     ---------------------------------------------------------------------
+
+     Rien ici n'ouvre un droit nouveau : chaque fonction appelée est celle
+     qu'appelle déjà `app/moderation.tsx` ou `app/plantages.tsx` depuis le
+     téléphone, avec la même revérification `est_moderateur()` dans son
+     propre corps. Ce qui suit est un second bouton pour le même geste.
+  --------------------------------------------------------------------- */
+
+  /** Reprend `MOTIF_LABELS` de `src/features/moderation/api.ts`, mot pour mot. */
+  var MOTIF_LABELS = {
+    faux_profil: 'Faux profil', harcelement: 'Harcèlement',
+    contenu_choquant: 'Contenu choquant', arnaque: 'Arnaque',
+    mineur: 'Personne mineure', autre: 'Autre'
+  };
+
+  /** Reprend `GENRE_SIGNALE_LABELS` de la même source. */
+  var GENRE_SIGNALE_LABELS = {
+    publication: 'Publication', statut: 'Statut', commentaire: 'Commentaire',
+    message: 'Photo privée', message_vocal: 'Note vocale', profil: 'Profil'
+  };
+
+  /**
+   * Reprend `explainModerationError()` (`api.ts:265-278`), mot pour mot : le
+   * même refus doit se lire pareil sur le téléphone et sur le web.
+   */
+  function expliquerErreur(message) {
+    var m = String(message || '').toLowerCase();
+    if (m.indexOf('réservé à la modération') !== -1) {
+      return "Ce compte n'a pas les droits de modération.";
+    }
+    if (m.indexOf('modération') !== -1 && m.indexOf('profil') !== -1) {
+      return 'Ce profil appartient à la modération : il ne peut pas être banni ici.';
+    }
+    if (m.indexOf('network') !== -1 || m.indexOf('fetch') !== -1 || m.indexOf('timeout') !== -1) {
+      return 'Connexion perdue. Réessaie.';
+    }
+    return 'Une erreur est survenue. Réessaie dans un instant.';
+  }
+
+  /**
+   * Une ligne d'état transitoire, propre à un panneau — jamais la couleur
+   * seule : `verdict()` pose déjà le signe et le mot avant elle.
+   */
+  function poserEtat(id, e, texte) {
+    var zone = $(id);
+    if (!zone) return;
+    clearTimeout(zone._t);
+    zone.innerHTML = texte ? verdict(e, texte) : '';
+    if (texte) zone._t = setTimeout(function () { zone.innerHTML = ''; }, 4000);
+  }
+
+  /**
+   * Une image distante, signée au même titre que sur le téléphone
+   * (`src/lib/media.ts`) : même appel `createSignedUrls`, même session de
+   * modérateur, aucune clé nouvelle. `p_seau` distingue `photos` (photos de
+   * profil, publications, messages, statuts) de `verifications` (selfies de
+   * badge) — les deux vivent dans des seaux séparés.
+   */
+  function signerChemins(seau, chemins) {
+    var uniques = Array.from(new Set(chemins.filter(Boolean)));
+    if (uniques.length === 0) return Promise.resolve({});
+    return sb.storage.from(seau).createSignedUrls(uniques, 3600).then(function (r) {
+      var urls = {};
+      (r.data || []).forEach(function (entree) {
+        if (entree.signedUrl && entree.path) urls[entree.path] = entree.signedUrl;
+      });
+      return urls;
+    }).catch(function () { return {}; });
+  }
+
+  function imgTag(chemin, seau, classe) {
+    if (!chemin) return '';
+    return '<img class="' + classe + '" data-chemin="' + ech(chemin) + '" data-seau="' + seau + '">';
+  }
+
+  /** Signe toutes les images d'une liste fraîchement rendue, un seau à la fois. */
+  async function aposerImages(racine) {
+    var imgs = Array.prototype.slice.call(racine.querySelectorAll('img[data-chemin]'));
+    if (imgs.length === 0) return;
+
+    var parSeau = {};
+    imgs.forEach(function (img) {
+      var seau = img.getAttribute('data-seau');
+      (parSeau[seau] = parSeau[seau] || []).push(img.getAttribute('data-chemin'));
+    });
+
+    var urlsParSeau = {};
+    for (var seau in parSeau) {
+      urlsParSeau[seau] = await signerChemins(seau, parSeau[seau]);
+    }
+
+    imgs.forEach(function (img) {
+      var url = (urlsParSeau[img.getAttribute('data-seau')] || {})[img.getAttribute('data-chemin')];
+      if (url) img.src = url;
+      else img.outerHTML = '<div class="fiche-image-vide">Image indisponible</div>';
+    });
+  }
+
+  /**
+   * La seule confirmation de toute la page — reprend mot pour mot les deux
+   * textes de `demanderBannissement` / `demanderBannissementProfil`
+   * (`app/moderation.tsx:224-255`). Tout le reste part au premier clic.
+   */
+  function confirmer(titre, texte, texteBouton) {
+    return new Promise(function (resolve) {
+      $('modaleTitre').textContent = titre;
+      $('modaleTexte').textContent = texte;
+      $('modaleConfirmer').textContent = texteBouton || 'Confirmer';
+      $('modale').hidden = false;
+
+      function fermer(valeur) {
+        $('modale').hidden = true;
+        $('modaleConfirmer').removeEventListener('click', surConfirmer);
+        $('modaleAnnuler').removeEventListener('click', surAnnuler);
+        resolve(valeur);
+      }
+      function surConfirmer() { fermer(true); }
+      function surAnnuler() { fermer(false); }
+
+      $('modaleConfirmer').addEventListener('click', surConfirmer);
+      $('modaleAnnuler').addEventListener('click', surAnnuler);
+    });
   }
 
   /* ---------------------------------------------------------------------
@@ -600,6 +967,393 @@
     return html + '</section>';
   }
 
+  /* ---------------------------------------------------------------------
+     Onglet — Signalements
+     --------------------------------------------------------------------- */
+  function ficheSignalement(l) {
+    var actions =
+      '<button type="button" data-action="rejeter" data-id="' + l.id + '">Classer sans suite</button>' +
+      '<button type="button" data-action="traiter" data-id="' + l.id + '">Marquer traité</button>';
+
+    if (l.signale_id && !l.signale_banni) {
+      actions += '<button type="button" class="danger" data-action="bannir" ' +
+        'data-profil="' + l.signale_id + '" data-report="' + l.id + '" ' +
+        'data-nom="' + ech(l.signale_nom || 'Cette personne') + '">Bannir ce compte</button>';
+    }
+
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete">' +
+        '<span class="etiquette">' + ech(MOTIF_LABELS[l.motif] || l.motif) + '</span>' +
+        '<span class="discret">' + ech(GENRE_SIGNALE_LABELS[l.genre] || l.genre) + '</span>' +
+        (l.contenu_supprime ? '<span class="pastille-attention">Contenu supprimé</span>' : '') +
+      '</div>' +
+      (l.contenu ? '<p class="fiche-contenu">' + ech(l.contenu) + '</p>' : '') +
+      imgTag(l.storage_path, 'photos', 'fiche-image') +
+      '<p class="discret" style="margin-top:8px">Visé : ' + ech(l.signale_nom || 'compte introuvable') +
+        (l.signale_banni ? ' (déjà banni)' : '') + ' · ' + nb(l.antecedents) + ' ' +
+        ech(accord(l.antecedents, 'antécédent', 'antécédents')) + '</p>' +
+      '<div class="fiche-actions">' + actions + '</div></div>';
+  }
+
+  async function chargerSignalements() {
+    $('actualiserSignalements').disabled = true;
+    var liste = $('listeSignalements');
+    try {
+      var r = await sb.rpc('signalements_a_traiter', {
+        p_statut: $('filtreSignalements').value, p_limite: 50
+      });
+      if (r.error) {
+        poserEtat('etatSignalements', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length
+        ? lignes.map(ficheSignalement).join('')
+        : '<p class="fiche-vide">Rien à traiter dans ce statut.</p>';
+      await aposerImages(liste);
+    } catch (cause) {
+      poserEtat('etatSignalements', 'critique', String(cause));
+    } finally {
+      $('actualiserSignalements').disabled = false;
+      chargesOnglets.signalements = true;
+    }
+  }
+
+  $('listeSignalements').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    var action = bouton.getAttribute('data-action');
+    var fiche = bouton.closest('.fiche');
+
+    function retirer(texte) {
+      fiche.remove();
+      poserEtat('etatSignalements', 'calme', texte);
+      if (!$('listeSignalements').querySelector('.fiche')) {
+        $('listeSignalements').innerHTML = '<p class="fiche-vide">Rien à traiter dans ce statut.</p>';
+      }
+    }
+
+    if (action === 'rejeter' || action === 'traiter') {
+      bouton.disabled = true;
+      var r = await sb.rpc('traiter_signalement', {
+        p_report: bouton.getAttribute('data-id'),
+        p_statut: action === 'rejeter' ? 'rejete' : 'traite'
+      });
+      if (r.error) {
+        poserEtat('etatSignalements', 'critique', expliquerErreur(r.error.message));
+        bouton.disabled = false;
+        return;
+      }
+      retirer(action === 'rejeter' ? 'Classé sans suite.' : 'Marqué traité.');
+      return;
+    }
+
+    if (action === 'bannir') {
+      var ok = await confirmer('Bannir ce compte ?',
+        bouton.getAttribute('data-nom') + ' disparaîtra de la découverte, du fil et des ' +
+        'profils publics. Ses conversations et ses signalements restent en base.',
+        'Bannir');
+      if (!ok) return;
+
+      bouton.disabled = true;
+      var rb = await sb.rpc('bannir_profil', { p_profil: bouton.getAttribute('data-profil'), p_bannir: true });
+      if (rb.error) {
+        poserEtat('etatSignalements', 'critique', expliquerErreur(rb.error.message));
+        bouton.disabled = false;
+        return;
+      }
+      await sb.rpc('traiter_signalement', { p_report: bouton.getAttribute('data-report'), p_statut: 'traite' });
+      retirer('Compte banni.');
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     Onglet — Badges de vérification
+     --------------------------------------------------------------------- */
+  function ficheBadge(l) {
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete"><span class="etiquette">' + ech(l.nom || 'Compte') + '</span>' +
+        '<span class="discret">' + ech(l.libelle) + '</span></div>' +
+      '<div class="fiche-image-duo">' +
+        '<figure>' + imgTag(l.chemin, 'verifications', '') + '<figcaption>Selfie déposé</figcaption></figure>' +
+        '<figure>' + imgTag(l.photo_profil, 'photos', '') + '<figcaption>Photo de profil</figcaption></figure>' +
+      '</div>' +
+      '<textarea class="motif" data-motif placeholder="Motif du refus (optionnel)"></textarea>' +
+      '<div class="fiche-actions">' +
+        '<button type="button" data-action="accepter" data-id="' + l.id + '">Accepter</button>' +
+        '<button type="button" class="sobre" data-action="refuser" data-id="' + l.id + '">Refuser</button>' +
+      '</div></div>';
+  }
+
+  async function chargerBadges() {
+    $('actualiserBadges').disabled = true;
+    var liste = $('listeBadges');
+    try {
+      var r = await sb.rpc('file_verifications', { p_limite: 30 });
+      if (r.error) {
+        poserEtat('etatBadges', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length
+        ? lignes.map(ficheBadge).join('')
+        : '<p class="fiche-vide">Aucune demande en attente.</p>';
+      await aposerImages(liste);
+    } catch (cause) {
+      poserEtat('etatBadges', 'critique', String(cause));
+    } finally {
+      $('actualiserBadges').disabled = false;
+      chargesOnglets.badges = true;
+    }
+  }
+
+  $('listeBadges').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    var action = bouton.getAttribute('data-action');
+    var fiche = bouton.closest('.fiche');
+    var motif = fiche.querySelector('[data-motif]');
+
+    bouton.disabled = true;
+    var r = await sb.rpc('decider_verification', {
+      p_id: bouton.getAttribute('data-id'),
+      p_accepter: action === 'accepter',
+      p_motif: motif && motif.value.trim() ? motif.value.trim() : null
+    });
+    if (r.error) {
+      poserEtat('etatBadges', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+    fiche.remove();
+    poserEtat('etatBadges', 'calme', action === 'accepter' ? 'Badge accordé.' : 'Badge refusé.');
+    if (!$('listeBadges').querySelector('.fiche')) {
+      $('listeBadges').innerHTML = '<p class="fiche-vide">Aucune demande en attente.</p>';
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     Onglet — Profils suspects
+     --------------------------------------------------------------------- */
+  function ficheSuspect(p) {
+    var motifs = (p.motifs || []).map(function (m, i) {
+      return '<li>' + ech(m) + (p.details && p.details[i] ? ' — ' + ech(p.details[i]) : '') + '</li>';
+    }).join('');
+
+    var action = p.banni
+      ? '<span class="discret">Déjà banni</span>'
+      : '<button type="button" class="danger" data-action="bannir" data-profil="' + p.profil +
+        '" data-nom="' + ech(p.nom || 'Cette personne') + '">Bannir</button>';
+
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete"><span class="etiquette">' + ech(p.nom || 'Compte') + '</span>' +
+        '<span class="discret">score ' + nb(p.score) + (p.verifie ? ' · vérifié' : '') + '</span></div>' +
+      (motifs ? '<ul class="discret" style="padding-left:18px;margin:6px 0">' + motifs + '</ul>' : '') +
+      '<div class="fiche-actions">' + action + '</div></div>';
+  }
+
+  async function chargerSuspects() {
+    $('actualiserSuspects').disabled = true;
+    var liste = $('listeSuspects');
+    try {
+      var r = await sb.rpc('profils_a_regarder', { p_limite: 30 });
+      if (r.error) {
+        poserEtat('etatSuspects', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length
+        ? lignes.map(ficheSuspect).join('')
+        : '<p class="fiche-vide">Aucun profil à regarder.</p>';
+    } catch (cause) {
+      poserEtat('etatSuspects', 'critique', String(cause));
+    } finally {
+      $('actualiserSuspects').disabled = false;
+      chargesOnglets.suspects = true;
+    }
+  }
+
+  $('listeSuspects').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action="bannir"]');
+    if (!bouton) return;
+
+    var ok = await confirmer('Bannir ce compte ?',
+      bouton.getAttribute('data-nom') + " disparaîtra de la découverte, du fil et des profils " +
+      "publics.\n\nAucun humain n'a signalé ce compte : ce sont des signaux automatiques, et " +
+      "chacun peut avoir une explication ordinaire.",
+      'Bannir');
+    if (!ok) return;
+
+    bouton.disabled = true;
+    var r = await sb.rpc('bannir_profil', { p_profil: bouton.getAttribute('data-profil'), p_bannir: true });
+    if (r.error) {
+      poserEtat('etatSuspects', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+    bouton.closest('.fiche').remove();
+    poserEtat('etatSuspects', 'calme', 'Compte banni.');
+    if (!$('listeSuspects').querySelector('.fiche')) {
+      $('listeSuspects').innerHTML = '<p class="fiche-vide">Aucun profil à regarder.</p>';
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     Onglet — Plantages
+     --------------------------------------------------------------------- */
+  function fichePlantage(l) {
+    var entete = [
+      l.dernier_modele,
+      l.dernier_android ? 'Android ' + l.dernier_android : null,
+      l.derniere_version ? 'version ' + l.derniere_version : null
+    ].filter(Boolean).map(ech).join(' · ');
+
+    var versTraite = !l.traite;
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete"><span class="etiquette">' + ech(l.ecran) + '</span>' +
+        '<span class="pastille-attention">' + nb(l.occurrences) + ' fois</span>' +
+        '<span class="discret">' + entete + '</span></div>' +
+      '<p class="fiche-contenu">' + ech(l.message) + '</p>' +
+      (l.pile ? '<details><summary>Pile d\'appel</summary><pre>' + ech(l.pile) + '</pre></details>' : '') +
+      '<div class="fiche-actions"><button type="button" data-action="classer" ' +
+        'data-empreinte="' + ech(l.empreinte) + '" data-vers="' + versTraite + '">' +
+        (versTraite ? 'Marquer traité' : 'Remettre à regarder') + '</button></div></div>';
+  }
+
+  async function chargerPlantages() {
+    $('actualiserPlantages').disabled = true;
+    var liste = $('listePlantages');
+    try {
+      var r = await sb.rpc('plantages_a_regarder', { p_traite: $('filtrePlantages').value === 'classes' });
+      if (r.error) {
+        poserEtat('etatPlantages', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length ? lignes.map(fichePlantage).join('') : '<p class="fiche-vide">Rien ici.</p>';
+    } catch (cause) {
+      poserEtat('etatPlantages', 'critique', String(cause));
+    } finally {
+      $('actualiserPlantages').disabled = false;
+      chargesOnglets.plantages = true;
+    }
+  }
+
+  $('listePlantages').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action="classer"]');
+    if (!bouton) return;
+
+    var versTraite = bouton.getAttribute('data-vers') === 'true';
+    bouton.disabled = true;
+    var r = await sb.rpc('classer_plantage', {
+      p_empreinte: bouton.getAttribute('data-empreinte'), p_traite: versTraite
+    });
+    if (r.error) {
+      poserEtat('etatPlantages', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+    bouton.closest('.fiche').remove();
+    poserEtat('etatPlantages', 'calme', versTraite ? 'Marqué traité.' : 'Remis à regarder.');
+    if (!$('listePlantages').querySelector('.fiche')) {
+      $('listePlantages').innerHTML = '<p class="fiche-vide">Rien ici.</p>';
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     Onglet — Fichiers orphelins
+     --------------------------------------------------------------------- */
+  async function chargerFichiers() {
+    $('actualiserFichiers').disabled = true;
+    try {
+      var r = await Promise.all([sb.rpc('fichiers_en_attente'), sb.rpc('fichiers_retenus')]);
+      var enPanne = r.find(function (x) { return x.error; });
+      if (enPanne) {
+        poserEtat('etatFichiers', 'critique', enPanne.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : enPanne.error.message);
+        return;
+      }
+      $('contenuFichiers').innerHTML =
+        '<div class="tuiles">' + tuile('à effacer', nb(r[0].data)) + tuile('retenus', nb(r[1].data)) + '</div>' +
+        '<div class="fiche-actions" style="margin-top:14px">' +
+        '<button type="button" id="nettoyerMaintenant">Nettoyer maintenant</button></div>';
+      $('nettoyerMaintenant').addEventListener('click', nettoyerLesFichiers);
+    } catch (cause) {
+      poserEtat('etatFichiers', 'critique', String(cause));
+    } finally {
+      $('actualiserFichiers').disabled = false;
+      chargesOnglets.fichiers = true;
+    }
+  }
+
+  /**
+   * Vide la file par lots, comme le fait déjà `app/moderation.tsx` — jusqu'à
+   * dix tours, tant que `restants` ne tombe pas à zéro.
+   */
+  async function nettoyerLesFichiers() {
+    var bouton = $('nettoyerMaintenant');
+    bouton.disabled = true;
+    bouton.textContent = 'Nettoyage…';
+    try {
+      var tours = 0;
+      var restants = 1;
+      while (restants > 0 && tours < 10) {
+        var r = await sb.functions.invoke('nettoyer-fichiers', { body: {} });
+        if (r.error) { poserEtat('etatFichiers', 'critique', expliquerErreur(r.error.message)); return; }
+        restants = r.data.restants;
+        tours += 1;
+      }
+      poserEtat('etatFichiers', 'calme', 'Nettoyage terminé.');
+    } finally {
+      await chargerFichiers();
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Les onglets — bascule et chargement paresseux
+     --------------------------------------------------------------------- */
+  var chargesOnglets = {};
+  var CHARGEURS_ONGLET = {
+    signalements: chargerSignalements,
+    badges: chargerBadges,
+    suspects: chargerSuspects,
+    plantages: chargerPlantages,
+    fichiers: chargerFichiers
+  };
+
+  function reinitialiserOnglets() {
+    chargesOnglets = {};
+    document.querySelectorAll('.onglet').forEach(function (b) {
+      b.classList.toggle('actif', b.getAttribute('data-onglet') === 'ensemble');
+    });
+    document.querySelectorAll('[data-panneau]').forEach(function (p) {
+      p.hidden = p.getAttribute('data-panneau') !== 'ensemble';
+    });
+  }
+
+  document.querySelectorAll('.onglet').forEach(function (bouton) {
+    bouton.addEventListener('click', function () {
+      var nom = bouton.getAttribute('data-onglet');
+      document.querySelectorAll('.onglet').forEach(function (b) { b.classList.toggle('actif', b === bouton); });
+      document.querySelectorAll('[data-panneau]').forEach(function (p) {
+        p.hidden = p.getAttribute('data-panneau') !== nom;
+      });
+      if (nom !== 'ensemble' && !chargesOnglets[nom]) CHARGEURS_ONGLET[nom]();
+    });
+  });
+
+  $('actualiserSignalements').addEventListener('click', chargerSignalements);
+  $('filtreSignalements').addEventListener('change', chargerSignalements);
+  $('actualiserBadges').addEventListener('click', chargerBadges);
+  $('actualiserSuspects').addEventListener('click', chargerSuspects);
+  $('actualiserPlantages').addEventListener('click', chargerPlantages);
+  $('filtrePlantages').addEventListener('change', chargerPlantages);
+  $('actualiserFichiers').addEventListener('click', chargerFichiers);
+
   function montrer(section, message) {
     $('contenu').innerHTML = '<section class="carte"><h2>' + ech(section) +
       '</h2><p>' + verdict('critique', message) + '</p></section>';
@@ -737,6 +1491,16 @@
     await sb.auth.signOut();
     afficherLeBord(false);
     $('contenu').innerHTML = '';
+    /*
+      ⚠️ Un compte qui se connecte après un autre ne doit hériter ni de ses
+      listes affichées, ni de la croyance qu'un onglet est « déjà chargé » —
+      sur un poste partagé, garder les fiches d'un modérateur à l'écran pour
+      le suivant serait la même faute que garder un lien signé après un
+      changement de compte (règle déjà écrite pour les photos).
+    */
+    ['listeSignalements', 'listeBadges', 'listeSuspects', 'listePlantages', 'contenuFichiers']
+      .forEach(function (id) { $(id).innerHTML = ''; });
+    reinitialiserOnglets();
   });
 
   /*
