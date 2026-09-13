@@ -145,6 +145,17 @@
     font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
 
+  /*
+    🔴 Une colonne, pas toute la largeur de l'écran.
+
+    Sans cette borne, à 1280 px chaque phrase courait sur 1 250 points — trois
+    fois la longueur de ligne qu'un œil suit sans se perdre — et dans le
+    tableau de densité le nombre d'actifs se retrouvait à 1 200 points de son
+    libellé, donc illisible d'un bout à l'autre. Le tableau de bord ne gagne
+    rien à s'étaler : il gagne à se lire.
+  */
+  main { max-width: 880px; margin: 0 auto; }
+
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
   h1 { font-size: 19px; margin: 0; font-weight: 700; }
   h2 {
@@ -176,6 +187,49 @@
     padding: 16px;
     margin-bottom: 14px;
   }
+
+  /* ---- Une question, puis sa reponse en une phrase -------------------- */
+  /*
+    ⚠️ Un titre de la vue d'ensemble est une QUESTION, pas une étiquette.
+
+    Il porte donc la taille d'un titre, jamais les capitales espacées de `h2`,
+    qui servent à nommer un champ — on ne pose pas une question en petites
+    capitales. La réponse tient dessous en une phrase, **avant** tout chiffre :
+    ce tableau se lit debout, le téléphone à la main, et ce qu'on n'a pas lu
+    en dix secondes, on ne le lira pas.
+  */
+  h2.question {
+    font-size: 17px; margin: 0 0 5px; font-weight: 700;
+    letter-spacing: normal; text-transform: none; color: var(--texte);
+    text-wrap: balance;
+  }
+  .reponse { margin: 0 0 14px; font-size: 14px; line-height: 1.45; color: var(--doux); }
+  .reponse strong { color: var(--texte); font-weight: 700; }
+
+  /* ---- Le verdict et le geste qu'il appelle, sur la meme ligne -------- */
+  .rangee-verdict { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .rangee-verdict .verdict { margin-top: 0; }
+
+  /* ---- Le detail : replie, jamais retire ----------------------------- */
+  /*
+    ⚠️ Un chiffre replié reste un chiffre affiché.
+
+    Neuf compteurs alignés dont six à zéro enterrent les trois qui parlent ;
+    les effacer, en revanche, ferait mentir la page par omission. Le repli est
+    la seule forme qui tienne les deux : la réponse est en haut, la preuve est
+    dessous, à un doigt.
+  */
+  details.detail { margin-top: 16px; border-top: 1px solid var(--trait); }
+  details.detail > summary {
+    list-style: none; cursor: pointer;
+    padding: 13px 0 11px; font-size: 13px; font-weight: 600; color: var(--accent);
+  }
+  details.detail > summary::-webkit-details-marker { display: none; }
+  details.detail > summary::after { content: ' ▾'; }
+  details.detail[open] > summary::after { content: ' ▴'; }
+  details.detail > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  details.detail .rangs { margin-top: 0; border-top: none; }
+  details.detail .cadre { margin-top: 4px; }
 
   /* ---- La figure héroïque : une seule par vue ------------------------- */
   .heros { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
@@ -211,9 +265,23 @@
   .afaire .compte { font-weight: 700; font-size: 17px; min-width: 1.6em; color: var(--texte); }
   .afaire .quoi { flex: 1; color: var(--texte); }
   .afaire .apres { color: var(--doux); font-size: 12px; }
+  /*
+    Le raccourci vers l'onglet qui porte la file. Il n'ouvre aucun droit : il
+    clique l'onglet à notre place, donc le chargement paresseux et la
+    revérification `est_moderateur()` restent exactement où ils étaient.
+  */
+  .afaire button.lien {
+    background: transparent; border: none; padding: 10px 0 10px 4px;
+    min-height: 0; font-size: 13px; color: var(--accent); text-decoration: underline;
+  }
 
   /* ---- Les tuiles ---------------------------------------------------- */
-  .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 14px 12px; }
+  /* ⚠️ Un maximum, pas seulement un minimum : sinon quatre tuiles s'étirent
+     à 200 points chacune et le nombre flotte seul au milieu de son casier. */
+  .tuiles {
+    display: grid; justify-content: start;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 170px)); gap: 14px 12px;
+  }
   .tuile .valeur { font-size: 24px; font-weight: 700; line-height: 1.1; }
   .tuile .nom { font-size: 11px; line-height: 1.25; color: var(--doux); }
 
@@ -254,10 +322,19 @@
   #connexion button[type="submit"] { width: 100%; }
   #erreur { color: var(--critique); font-size: 14px; }
 
-  /* ---- Les onglets : une rangée qui défile, jamais la page ------------ */
+  /* ---- Les onglets : une rangée qui se replie, jamais qui défile ------ */
+  /*
+    🔴 Ils défilaient, et deux d'entre eux étaient invisibles à 360 px.
+
+    « Plantages » et « Fichiers » sortaient du cadre par la droite, sans la
+    moindre marque disant qu'ils existaient — et le jour où cela s'est vu,
+    l'onglet hors champ était justement celui qui menait aux huit plantages du
+    jour. Un défilement que personne ne devine cache, il ne range pas. Six
+    pastilles tiennent sur deux rangs sans rien demander à personne.
+  */
   .onglets {
-    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
-    margin-bottom: 14px; -webkit-overflow-scrolling: touch;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 14px;
   }
   .onglet {
     flex: 0 0 auto; background: transparent; color: var(--doux);
@@ -276,7 +353,8 @@
     border: 1px solid var(--trait); border-radius: 10px;
     background: var(--carte); color: var(--texte);
   }
-  .panneau-tete button.petit { padding: 8px 12px; min-height: 40px; font-size: 13px; }
+  /* ⚠️ Non plus `.panneau-tete button.petit` : la vue d'ensemble s'en sert aussi. */
+  button.petit { padding: 8px 12px; min-height: 40px; font-size: 13px; }
 
   /* ---- La ligne d'état d'un panneau : transitoire, jamais muette ------ */
   .panneau-etat:empty { display: none; }
@@ -402,6 +480,8 @@
     header { gap: 8px; }
     header button { flex: 1; padding: 9px 10px; }
     .onglet { padding: 8px 12px; font-size: 12px; }
+    h2.question { font-size: 16px; }
+    td.barre { min-width: 44px; }
     .fiche-image, .fiche-image-vide { max-width: 100%; width: 140px; }
   }
 </style>
@@ -633,12 +713,14 @@
       ech(texte) + '</span>';
   }
 
-  function ligneAFaire(etat, compte, quoi, apres) {
+  function ligneAFaire(etat, compte, quoi, apres, onglet) {
     return '<li class="v-' + etat + '">' +
       '<span class="pastille" aria-hidden="true"></span>' +
       '<span class="compte">' + nb(compte) + '</span>' +
       '<span class="quoi">' + ech(quoi) + '</span>' +
       (apres ? '<span class="apres">' + ech(apres) + '</span>' : '') +
+      (onglet ? '<button type="button" class="lien" data-va-vers="' + ech(onglet) +
+        '">Ouvrir</button>' : '') +
       '</li>';
   }
 
@@ -769,7 +851,75 @@
   }
 
   /* ---------------------------------------------------------------------
-     Bloc 1 — ce qui appelle une action
+     La vue d'ensemble — quatre questions, quatre réponses (11 septembre 2026)
+     ---------------------------------------------------------------------
+
+     Les quatre blocs posaient des intitulés — « Ce qui appelle une action »,
+     « Ce que devient l'application ». Ils posent maintenant des **questions**,
+     et y répondent en une phrase avant d'aligner le moindre chiffre.
+
+     🔴 Ce qui a changé le plus n'est pas le ton, c'est ce qui est en haut.
+     La figure héroïque annonçait « 0 en attente » — un non-événement, en vert,
+     en 52 points — pendant que les deux seules tâches du jour tenaient dans
+     deux puces grises plus bas. Elle annonce désormais **la file la plus
+     urgente**, quelle qu'elle soit, et donne le bouton qui y mène.
+  --------------------------------------------------------------------- */
+
+  /**
+   * Les files de travail, classées par ce qu'elles coûtent si on les laisse.
+   *
+   * ⚠️ `rang` classe par CONSÉQUENCE, jamais par nombre : une seule ligne peut
+   * être plus urgente que huit. C'est ce classement qui choisit la figure
+   * héroïque, et c'est le même qui ordonne la liste dessous — sans quoi la
+   * page trierait par ce qui est gros plutôt que par ce qui est grave.
+   *
+   * ⚠️ Une notification en échec n'est plus « critique ». Elle l'était depuis
+   * la première version, ce qui la plaçait devant huit plantages : un message
+   * non remis reste un message non remis, quand un plantage casse
+   * l'application pour quelqu'un. La couleur et l'ordre disent désormais la
+   * même chose — sinon le rouge arrive deuxième, et plus rien ne se lit.
+   *
+   * ⚠️ Deux files n'ont pas d'onglet, et c'est voulu : les images sont déjà
+   * jugées par l'analyse automatique, et une notification en échec se rejoue
+   * toute seule. Elles se comptent, elles ne se tranchent pas ici.
+   */
+  function filesDeTravail(s) {
+    return [
+      { n: s.signalements_en_attente, rang: 100,
+        etat: s.signalements_plus_24h > 0 ? 'critique' : 'alerte',
+        quoi: accord(s.signalements_en_attente, 'signalement à traiter', 'signalements à traiter'),
+        apres: s.signalements_plus_24h > 0 ? s.signalements_plus_24h + ' au-delà de 24 h' : '',
+        onglet: 'signalements', nom: 'signalements' },
+
+      { n: s.images_en_attente, rang: 80, etat: 'alerte',
+        quoi: accord(s.images_en_attente, 'image à juger', 'images à juger'),
+        onglet: null, nom: 'images' },
+
+      { n: s.badges_en_attente, rang: 70, etat: 'alerte',
+        quoi: accord(s.badges_en_attente, 'demande de badge', 'demandes de badge'),
+        onglet: 'badges', nom: 'badges' },
+
+      { n: s.profils_suspects, rang: 60, etat: 'alerte',
+        quoi: accord(s.profils_suspects, 'profil à regarder', 'profils à regarder'),
+        onglet: 'suspects', nom: 'profils suspects' },
+
+      { n: s.plantages_non_traites, rang: 50, etat: 'alerte',
+        quoi: accord(s.plantages_non_traites, 'plantage à examiner', 'plantages à examiner'),
+        apres: s.plantage_max_occurrences > 1 ? 'le pire vu ' + s.plantage_max_occurrences + ' fois' : '',
+        onglet: 'plantages', nom: 'plantages' },
+
+      { n: s.push_en_echec, rang: 40, etat: 'alerte',
+        quoi: accord(s.push_en_echec, 'notification en échec', 'notifications en échec'),
+        onglet: null, nom: 'notifications' },
+
+      { n: s.fichiers_restants, rang: 30, etat: 'alerte',
+        quoi: accord(s.fichiers_restants, 'fichier à effacer', 'fichiers à effacer'),
+        onglet: 'fichiers', nom: 'fichiers' }
+    ];
+  }
+
+  /* ---------------------------------------------------------------------
+     Bloc 1 — Est-ce que ça tourne ?
      --------------------------------------------------------------------- */
   function blocSante(s) {
     var age = s.plus_vieux_signalement_h;
@@ -779,67 +929,76 @@
       mais Google Play en attend 24 : c'est la plus stricte qui décide d'une
       suspension sur la boutique, donc c'est elle qu'on tient.
     */
-    var etat = age === null ? 'calme' : age >= 24 ? 'critique' : age >= 12 ? 'alerte' : 'calme';
+    var etatDelai = age === null ? 'calme' : age >= 24 ? 'critique' : age >= 12 ? 'alerte' : 'calme';
 
-    var html = '<section class="carte"><h2>Ce qui appelle une action</h2>';
+    var travaux = filesDeTravail(s);
+    var afaire = travaux
+      .filter(function (t) { return t.n > 0; })
+      .sort(function (a, b) { return b.rang - a.rang; });
+    var calmes = travaux.filter(function (t) { return !(t.n > 0); });
 
-    if (age === null) {
-      html += '<div class="heros"><span class="nombre v-calme">0</span>' +
-        '<span class="unite">en attente</span></div>' +
-        '<p class="heros-legende">Aucun signalement à traiter.</p>' +
-        verdict('calme', 'Dans les délais');
+    var html = '<section class="carte"><h2 class="question">Est-ce que ça tourne ?</h2>';
+
+    if (afaire.length === 0) {
+      html += '<p class="reponse">Oui — <strong>aucune file n\'attend</strong>.</p>' +
+        '<div class="heros"><span class="nombre v-calme">0</span>' +
+        '<span class="unite">à faire</span></div>';
     } else {
-      html += '<div class="heros"><span class="nombre v-' + etat + '">' +
-        Math.round(age) + '</span><span class="unite">heures</span></div>' +
-        '<p class="heros-legende">Le plus vieux signalement non traité. ' +
-        'Promesse publique : 48 h. Attente de Google Play : 24 h.</p>' +
-        verdict(etat,
-          etat === 'critique' ? 'Au-delà des 24 h de Google Play'
-            : etat === 'alerte' ? 'Moins de 12 h de marge'
-            : 'Dans les délais');
+      var tete = afaire[0];
+      var reste = afaire.length - 1;
+
+      html += '<p class="reponse">Le plus pressé : <strong>' + nb(tete.n) + ' ' +
+        ech(tete.quoi) + '</strong>' +
+        (reste > 0
+          ? ', et ' + (reste > 1 ? nb(reste) + ' autres files attendent' : 'une autre file attend')
+          : '') + '.</p>';
+
+      html += '<div class="heros"><span class="nombre v-' + tete.etat + '">' +
+        nb(tete.n) + '</span><span class="unite">' + ech(tete.quoi) + '</span></div>';
+
+      html += '<div class="rangee-verdict">' +
+        verdict(tete.etat, tete.etat === 'critique' ? 'À traiter maintenant' : 'À traiter') +
+        (tete.onglet
+          ? '<button type="button" class="petit" data-va-vers="' + ech(tete.onglet) +
+            '">Ouvrir</button>'
+          : '') +
+        '</div>';
+
+      if (reste > 0) {
+        html += '<ul class="afaire">' + afaire.slice(1).map(function (t) {
+          return ligneAFaire(t.etat, t.n, t.quoi, t.apres, t.onglet);
+        }).join('') + '</ul>';
+      }
     }
 
     /*
       ⚠️ Ce qui est à zéro ne s'affiche pas, il se replie.
 
       Neuf zéros alignés ne disent rien qu'un « rien à signaler » ne dise
-      mieux — et ils enterrent les deux chiffres qui appellent un geste.
+      mieux — et ils enterrent les chiffres qui appellent un geste.
     */
-    var travaux = [
-      { n: s.signalements_en_attente, etat: s.signalements_plus_24h > 0 ? 'critique' : 'alerte',
-        quoi: accord(s.signalements_en_attente, 'signalement à traiter', 'signalements à traiter'),
-        apres: s.signalements_plus_24h > 0 ? s.signalements_plus_24h + ' au-delà de 24 h' : '',
-        nom: 'signalements' },
-      { n: s.images_en_attente, etat: 'alerte',
-        quoi: accord(s.images_en_attente, 'image à juger', 'images à juger'), nom: 'images' },
-      { n: s.badges_en_attente, etat: 'alerte',
-        quoi: accord(s.badges_en_attente, 'demande de badge', 'demandes de badge'), nom: 'badges' },
-      { n: s.profils_suspects, etat: 'alerte',
-        quoi: accord(s.profils_suspects, 'profil à regarder', 'profils à regarder'), nom: 'profils suspects' },
-      { n: s.push_en_echec, etat: 'critique',
-        quoi: accord(s.push_en_echec, 'notification en échec', 'notifications en échec'), nom: 'notifications' },
-      { n: s.plantages_non_traites, etat: 'alerte',
-        quoi: accord(s.plantages_non_traites, 'plantage à examiner', 'plantages à examiner'),
-        apres: s.plantage_max_occurrences > 1 ? 'le pire vu ' + s.plantage_max_occurrences + ' fois' : '',
-        nom: 'plantages' },
-      { n: s.fichiers_restants, etat: 'alerte',
-        quoi: accord(s.fichiers_restants, 'fichier à effacer', 'fichiers à effacer'), nom: 'fichiers' }
-    ];
-
-    var afaire = travaux.filter(function (t) { return t.n > 0; });
-    var calmes = travaux.filter(function (t) { return !(t.n > 0); });
-
-    if (afaire.length > 0) {
-      html += '<ul class="afaire">' + afaire.map(function (t) {
-        return ligneAFaire(t.etat, t.n, t.quoi, t.apres);
-      }).join('') + '</ul>';
-    }
-
     if (calmes.length > 0) {
       html += '<p class="note" style="border-color:var(--calme)">' +
         verdict('calme', 'Rien à signaler') + '<br>' +
         ech(calmes.map(function (t) { return t.nom; }).join(', ')) + '.</p>';
     }
+
+    /*
+      ⚠️ Ce bloc-ci reste affiché même à zéro, et c'est le SEUL.
+
+      Les autres zéros se replient parce qu'ils n'engagent personne. Celui-là
+      si : 48 heures annoncées publiquement, 24 attendues par Google Play. Un
+      délai qu'on promet se lit tous les jours — y compris, et surtout, les
+      jours où il est tenu, faute de quoi on ne verrait jamais celui où il
+      cesse de l'être.
+    */
+    html += '<p class="note" style="border-color:var(--' + etatDelai + ')">' +
+      verdict(etatDelai, age === null
+        ? 'Aucun signalement en attente'
+        : Math.round(age) + ' h pour le plus vieux') + '<br>' +
+      'Le délai promis est de <strong>48 heures</strong>, et Google Play en attend ' +
+      '<strong>24</strong>. C\'est la plus stricte des deux qui décide d\'une ' +
+      'suspension sur la boutique, donc c\'est elle qu\'on tient.</p>';
 
     /*
       Les fichiers « retenus » ne sont pas un retard : une ligne les cite
@@ -857,12 +1016,29 @@
   }
 
   /* ---------------------------------------------------------------------
-     Bloc 2 — ce que devient l'application
+     Bloc 2 — Est-ce que ça grandit ?
      --------------------------------------------------------------------- */
   function blocUsage(u) {
     var abandon = u.inscrits - u.profils_termines;
 
-    return '<section class="carte"><h2>Ce que devient l\'application</h2>' +
+    /*
+      ⚠️ La question se répond sur la SEMAINE, pas sur le total.
+
+      « 18 inscrits » ne dit pas si ça grandit : c'est un cumul, il ne baisse
+      jamais. Le chiffre qui répond est celui des sept derniers jours, et il
+      vaut zéro — un zéro qu'il faut lire, pas replier, parce que c'est
+      exactement la réponse à la question posée.
+    */
+    var reponse = u.inscrits_7j > 0
+      ? 'Oui — <strong>' + nb(u.inscrits_7j) + ' ' +
+        ech(accord(u.inscrits_7j, 'inscription', 'inscriptions')) +
+        ' cette semaine</strong>, pour ' + nb(u.inscrits) + ' depuis le début.'
+      : 'Non — <strong>aucune inscription cette semaine</strong>, et ' +
+        nb(u.inscrits) + ' depuis le début.';
+
+    return '<section class="carte"><h2 class="question">Est-ce que ça grandit ?</h2>' +
+      '<p class="reponse">' + reponse + '</p>' +
+
       '<div class="tuiles">' +
       tuile('inscrits', nb(u.inscrits)) +
       tuile('actifs sur 30 jours', nb(u.actifs_30j)) +
@@ -873,18 +1049,6 @@
       jauge('Inscription terminée', u.profils_termines, u.inscrits) +
       jauge('Actifs sur 30 jours', u.actifs_30j, u.inscrits) +
 
-      '<div class="rangs">' +
-      rang("Inscriptions aujourd'hui", nb(u.inscrits_jour)) +
-      rang('Inscriptions sur 7 jours', nb(u.inscrits_7j)) +
-      rang('Actifs sur 7 jours', nb(u.actifs_7j)) +
-      rang('Matchs sur 7 jours', nb(u.matchs_7j)) +
-      rang('Messages sur 7 jours', nb(u.messages_7j)) +
-      rang('Publications', nb(u.publications)) +
-      rang('Statuts encore visibles', nb(u.statuts_visibles)) +
-      rang('Comptes bannis', nb(u.bannis)) +
-      rang('Comptes supprimés', nb(u.comptes_supprimes)) +
-      '</div>' +
-
       (abandon > 0
         ? '<p class="note"><strong>' + nb(abandon) + ' ' +
           ech(accord(abandon, 'inscription commencée et non terminée',
@@ -892,52 +1056,145 @@
           'C\'est le chiffre à surveiller après toute retouche du parcours — ' +
           'la photo obligatoire en est l\'étape la plus exposée.</p>'
         : '') +
+
+      '<details class="detail"><summary>Le détail, jour et semaine</summary>' +
+      '<div class="rangs">' +
+      rang("Inscriptions aujourd'hui", nb(u.inscrits_jour)) +
+      rang('Inscriptions sur 7 jours', nb(u.inscrits_7j)) +
+      rang('Inscriptions sur 30 jours', nb(u.inscrits_30j)) +
+      rang('Actifs sur 7 jours', nb(u.actifs_7j)) +
+      rang('Matchs sur 7 jours', nb(u.matchs_7j)) +
+      rang('Messages sur 7 jours', nb(u.messages_7j)) +
+      rang('Publications', nb(u.publications)) +
+      rang('Statuts encore visibles', nb(u.statuts_visibles)) +
+      rang('Comptes bannis', nb(u.bannis)) +
+      rang('Comptes supprimés', nb(u.comptes_supprimes)) +
+      '</div></details>' +
       '</section>';
   }
 
   /* ---------------------------------------------------------------------
-     Bloc 3 — la densité
+     Bloc 3 — Où peut-on ouvrir ?
      --------------------------------------------------------------------- */
   function blocDensite(lignes) {
     /*
       Douze communes, donc un tableau : au-delà de sept classes, des couleurs
       supplémentaires ne distinguent plus rien. La barre reste dans une seule
       teinte, proportionnelle au maximum observé.
-    */
-    var max = lignes.reduce(function (m, l) { return Math.max(m, l.termines); }, 0);
 
-    var corps = lignes.map(function (l) {
+      🔴 Ville et commune tiennent dans UNE colonne, désormais.
+
+      Sur deux colonnes, la dernière — « Actifs 30 j » — sortait du cadre à
+      360 px. Elle restait atteignable en faisant défiler le tableau, mais
+      rien ne disait qu'elle existait. Une colonne de moins vaut mieux qu'un
+      défilement que personne ne devine.
+
+      ⚠️ Et les trois premiers lieux seulement restent dépliés : neuf lignes à
+      un profil ne sont pas douze fois la même information, elles sont une
+      seule information — « partout ailleurs, une personne ».
+    */
+    var TETE = 3;
+
+    var tri = lignes.slice().sort(function (a, b) {
+      return (b.termines - a.termines) || (b.inscrits - a.inscrits);
+    });
+    var max = tri.reduce(function (m, l) { return Math.max(m, l.termines); }, 0);
+
+    /*
+      ⚠️ La commune absente s'écrit, elle ne se laisse pas vide.
+
+      Une ligne portant « Abidjan » tout seul, entre deux lignes « Abidjan ·
+      Cocody » et « Abidjan · Yopougon », se lit comme le TOTAL de la ville.
+      C'en est l'inverse : un profil d'Abidjan dont on ignore la commune.
+    */
+    function nomVille(v) { return v === '(sans ville)' ? 'Sans ville' : v; }
+    function nomCommune(c) { return !c || c === '(sans commune)' ? 'sans commune' : c; }
+
+    function ou(l) {
+      return ech(nomVille(l.ville)) +
+        ' <span class="discret">· ' + ech(nomCommune(l.commune)) + '</span>';
+    }
+
+    function ligne(l) {
       var pct = max > 0 ? Math.round((l.termines / max) * 100) : 0;
-      return '<tr><td>' + ech(l.ville) + '</td><td>' + ech(l.commune) + '</td>' +
+      return '<tr><td>' + ou(l) + '</td>' +
         '<td class="n">' + nb(l.termines) + '</td>' +
         '<td class="barre"><div class="minipiste"><div class="miniremplissage" style="width:' +
         pct + '%"></div></div></td>' +
         '<td class="n">' + nb(l.actifs_30j) + '</td></tr>';
-    }).join('');
+    }
 
-    return '<section class="carte"><h2>Où la densité permet d\'ouvrir</h2>' +
-      '<div class="cadre"><table><thead><tr>' +
-      '<th>Ville</th><th>Commune</th><th class="n">Terminés</th><th></th>' +
-      '<th class="n">Actifs 30 j</th>' +
-      '</tr></thead><tbody>' +
-      (corps || '<tr><td colspan="5">Personne encore.</td></tr>') +
-      '</tbody></table></div>' +
-      '<p class="note">Ce sont les <strong>profils terminés</strong> qui font la ' +
+    function tableau(rangs) {
+      return '<div class="cadre"><table><thead><tr>' +
+        '<th>Où</th><th class="n">Terminés</th><th></th><th class="n">Actifs 30 j</th>' +
+        '</tr></thead><tbody>' +
+        (rangs.map(ligne).join('') || '<tr><td colspan="4">Personne encore.</td></tr>') +
+        '</tbody></table></div>';
+    }
+
+    var tete = tri[0];
+    var reponse = !tete || tete.termines === 0
+      ? '<strong>Nulle part encore</strong> — aucun lieu n\'a de profil terminé.'
+      : 'Le plus dense est <strong>' + ech(nomVille(tete.ville)) + ' · ' +
+        ech(nomCommune(tete.commune)) +
+        '</strong>, avec ' + nb(tete.termines) + ' ' +
+        ech(accord(tete.termines, 'profil terminé', 'profils terminés')) + '.';
+
+    var html = '<section class="carte"><h2 class="question">Où peut-on ouvrir ?</h2>' +
+      '<p class="reponse">' + reponse + '</p>' +
+      tableau(tri.slice(0, TETE));
+
+    var suite = tri.slice(TETE);
+    if (suite.length > 0) {
+      var pareils = suite.every(function (l) { return l.termines === suite[0].termines; });
+      html += '<details class="detail"><summary>' +
+        nb(suite.length) + ' ' + ech(accord(suite.length, 'autre lieu', 'autres lieux')) +
+        (pareils
+          ? ', ' + ech(accord(suite.length, 'à', 'tous à')) + ' ' + nb(suite[0].termines) + ' ' +
+            ech(accord(suite[0].termines, 'profil terminé', 'profils terminés'))
+          : '') +
+        '</summary>' + tableau(suite) + '</details>';
+    }
+
+    html += '<p class="note">Ce sont les <strong>profils terminés</strong> qui font la ' +
       'densité, pas les inscrits : un compte sans photo ni test n\'apparaît dans ' +
       'la découverte de personne. Ouvrir une ville sur le nombre d\'inscrits ' +
-      'ferait payer de la publicité vers un fil vide.</p></section>';
+      'ferait payer de la publicité vers un fil vide.</p>';
+
+    /*
+      ⚠️ La ligne sans ville était la dernière et ne se distinguait de rien.
+
+      Elle mérite mieux que le douzième rang d'un tableau : un compte sans lieu
+      ne pèse dans la densité d'aucune commune, donc il ne comptera dans
+      aucune décision d'ouverture — et personne ne s'en apercevra en lisant
+      une ligne à 1.
+    */
+    var sansLieu = lignes
+      .filter(function (l) { return l.ville === '(sans ville)'; })
+      .reduce(function (t, l) { return t + l.inscrits; }, 0);
+
+    if (sansLieu > 0) {
+      html += '<p class="note" style="border-color:var(--alerte)"><strong>' +
+        nb(sansLieu) + ' ' + ech(accord(sansLieu, 'inscrit sans ville', 'inscrits sans ville')) +
+        '.</strong> ' + ech(accord(sansLieu, 'Il ne pèse', 'Ils ne pèsent')) +
+        ' dans la densité d\'aucune commune, et ' +
+        ech(accord(sansLieu, 'ne comptera', 'ne compteront')) +
+        ' donc dans aucune décision d\'ouverture.</p>';
+    }
+
+    html += '<p class="note">Aucun seuil d\'ouverture n\'est fixé à ce jour. ' +
+      'Le moment où une ville s\'ouvre en publicité est une <strong>décision à ' +
+      'prendre</strong>, pas un calcul que cette page saurait faire à la place ' +
+      'de quelqu\'un.</p>';
+
+    return html + '</section>';
   }
 
   /* ---------------------------------------------------------------------
-     Bloc 4 — les paliers
+     Bloc 4 — Est-ce que ça rapporte ?
      --------------------------------------------------------------------- */
   function blocArgent(a) {
-    var html = '<section class="carte"><h2>Les paliers</h2><div class="tuiles">' +
-      tuile('abonnés VIP', nb(a.abonnes_vip)) +
-      tuile('abonnés Premium', nb(a.abonnes_premium)) +
-      tuile('veulent le VIP', nb(a.interets_vip)) +
-      tuile('veulent le Premium', nb(a.interets_premium)) +
-      '</div>';
+    var abonnes = a.abonnes_vip + a.abonnes_premium;
 
     /*
       ⚠️ Dire pourquoi c'est à zéro, au lieu d'afficher un zéro muet.
@@ -948,13 +1205,38 @@
       tant que l'encaissement est fermé : un chiffre juste qui induit une
       conclusion fausse est pire qu'un chiffre absent.
     */
+    var reponse;
+    if (!a.encaissement_ouvert) {
+      reponse = 'Pas encore — <strong>l\'encaissement n\'est pas ouvert</strong>' +
+        (abonnes > 0
+          ? ', donc ' + ech(accord(abonnes, 'l\'abonné compté', 'les ' + nb(abonnes) + ' abonnés comptés')) +
+            ' ci-dessous ' + ech(accord(abonnes, 'n\'a rien payé', 'n\'ont rien payé'))
+          : '') + '.';
+    } else if (a.recettes_mois_fcfa > 0) {
+      reponse = 'Oui — <strong>' + nb(a.recettes_mois_fcfa) + ' FCFA</strong> ce mois-ci, ' +
+        'pour ' + nb(abonnes) + ' ' + ech(accord(abonnes, 'abonné', 'abonnés')) + '.';
+    } else {
+      reponse = 'Pas ce mois-ci — <strong>aucune recette</strong>, pour ' +
+        nb(abonnes) + ' ' + ech(accord(abonnes, 'abonné', 'abonnés')) + '.';
+    }
+
+    var html = '<section class="carte"><h2 class="question">Est-ce que ça rapporte ?</h2>' +
+      '<p class="reponse">' + reponse + '</p>' +
+      '<div class="tuiles">' +
+      tuile('abonnés VIP', nb(a.abonnes_vip)) +
+      tuile('abonnés Premium', nb(a.abonnes_premium)) +
+      tuile('veulent le VIP', nb(a.interets_vip)) +
+      tuile('veulent le Premium', nb(a.interets_premium)) +
+      '</div>';
+
     if (a.encaissement_ouvert) {
-      html += '<div class="rangs">' +
+      html += '<details class="detail"><summary>Le détail des paiements</summary>' +
+        '<div class="rangs">' +
         rang('Paiements réussis ce mois', nb(a.paiements_reussis_mois)) +
         rang('Recettes du mois', nb(a.recettes_mois_fcfa) + ' FCFA') +
         rang('Paiements échoués ce mois', nb(a.paiements_echoues_mois)) +
         rang('Paiements en attente', nb(a.paiements_en_attente)) +
-        '</div>';
+        '</div></details>';
     } else {
       html += '<p class="note" style="border-color:var(--alerte)">' +
         verdict('alerte', 'Encaissement fermé') + '<br>' +
@@ -1353,6 +1635,22 @@
   $('actualiserPlantages').addEventListener('click', chargerPlantages);
   $('filtrePlantages').addEventListener('change', chargerPlantages);
   $('actualiserFichiers').addEventListener('click', chargerFichiers);
+
+  /*
+    Un raccourci de la vue d'ensemble vers l'onglet qui porte la file.
+
+    ⚠️ Il n'ouvre aucun droit neuf : il clique l'onglet à notre place. Le
+    chargement paresseux, la revérification `est_moderateur()` dans le corps
+    de chaque fonction SQL et le refus `42501` restent exactement où ils
+    étaient — ce bouton ne sait rien faire que l'onglet ne sache déjà.
+  */
+  $('contenu').addEventListener('click', function (e) {
+    var cible = e.target.closest ? e.target.closest('[data-va-vers]') : null;
+    if (!cible) return;
+    var onglet = document.querySelector(
+      '.onglet[data-onglet="' + cible.getAttribute('data-va-vers') + '"]');
+    if (onglet) { onglet.click(); window.scrollTo(0, 0); }
+  });
 
   function montrer(section, message) {
     $('contenu').innerHTML = '<section class="carte"><h2>' + ech(section) +
