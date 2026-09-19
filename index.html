@@ -32,6 +32,14 @@
   Cette page n'ouvre donc aucun droit qui n'existait pas : c'est un second
   bouton pour un geste déjà éprouvé.
 
+  ⚠️ **Deux exceptions à « aucune n'est nouvelle », et elles sont assumées.**
+  `envoyer_message_moderation` *(écrire à un compte)* et `bannis_a_regarder`
+  *(0138 — la liste des bannis)* n'existaient pas sur le téléphone. La seconde
+  vient de l'audit du 19 septembre 2026 : la page savait bannir et ne savait
+  pas défaire, ce qui laissait un clic de trop **sans recours dans l'outil qui
+  l'avait permis**. Elles portent la même garde que les seize autres, dans leur
+  corps.
+
   ⚠️ **Un seul geste se confirme avant de partir : bannir.** C'est la seule
   frontière que le téléphone trace lui-même (`app/moderation.tsx`), et le web
   la reprend à l'identique — ni plus strict, ni plus permissif. Tout le reste
@@ -629,6 +637,7 @@
   <nav class="onglets" id="onglets">
     <button type="button" class="onglet actif" data-onglet="ensemble">Vue d'ensemble</button>
     <button type="button" class="onglet" data-onglet="signalements">Signalements</button>
+    <button type="button" class="onglet" data-onglet="bannis">Bannis</button>
     <button type="button" class="onglet" data-onglet="badges">Badges</button>
     <button type="button" class="onglet" data-onglet="suspects">Profils suspects</button>
     <button type="button" class="onglet" data-onglet="plantages">Plantages</button>
@@ -651,6 +660,27 @@
     </div>
     <div class="panneau-etat" id="etatSignalements"></div>
     <div id="listeSignalements"></div>
+  </div>
+
+  <!--
+    🔴 **L'onglet qui défait** *(audit du 19 septembre 2026)*. Le tableau de
+    bord savait bannir et ne savait pas lever : `p_bannir` valait `true` aux
+    deux seuls endroits qui appelaient `bannir_profil`, et aucun écran ne
+    montrait qui était banni. Un clic de trop n'avait **aucun recours dans
+    l'outil qui l'avait permis**.
+
+    ⚠️ Depuis `0134` un bannissement à durée se lève tout seul ; un
+    **définitif**, lui, n'a que cet écran — `null <= now()` ne vaut jamais
+    vrai, et la purge des comptes inactifs écarte les bannis. C'est pour ça
+    que la liste les met en tête.
+  -->
+  <div class="panneau" data-panneau="bannis" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserBannis">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatBannis"></div>
+    <div id="listeBannis"></div>
   </div>
 
   <div class="panneau" data-panneau="badges" hidden>
@@ -1585,6 +1615,26 @@
      Onglet — Signalements
      --------------------------------------------------------------------- */
   function ficheSignalement(l) {
+    /*
+      ⚠️ **Un dossier clos ne porte pas de boutons** *(audit du 19 septembre
+      2026)*. Cette fiche ne regardait pas `l.statut` : en filtrant sur
+      « Traités » ou « Rejetés », on voyait « Marquer traité » et surtout
+      « Bannir ce compte » sur des dossiers déjà réglés.
+
+      🔴 Ce n'est pas qu'un défaut d'affichage. Le geste le plus lourd du
+      tableau de bord était proposé là où il n'y avait plus rien à décider —
+      et un bannissement posé sur un dossier qu'on relisait par curiosité est
+      exactement le clic de trop que rien ne rattrapait.
+    */
+    var clos = l.statut === 'traite' || l.statut === 'rejete';
+
+    if (clos) {
+      return '<div class="carte fiche">' + enteteSignalement(l) +
+        '<p class="discret">Dossier clos — ' +
+        ech(l.statut === 'traite' ? 'marqué traité' : 'classé sans suite') + '.</p>' +
+        '</div>';
+    }
+
     var actions =
       '<button type="button" data-action="rejeter" data-id="' + l.id + '">Classer sans suite</button>' +
       '<button type="button" data-action="traiter" data-id="' + l.id + '">Marquer traité</button>';
@@ -1606,8 +1656,13 @@
         'data-nom="' + ech(l.signale_nom || 'Cette personne') + '">Bannir ce compte</button>';
     }
 
-    return '<div class="carte fiche">' +
-      '<div class="fiche-tete">' +
+    return '<div class="carte fiche">' + enteteSignalement(l) +
+      '<div class="fiche-actions">' + actions + '</div></div>';
+  }
+
+  /** Le dossier lui-même — ce qui se lit, qu'il reste ou non un geste à poser. */
+  function enteteSignalement(l) {
+    return '<div class="fiche-tete">' +
         '<span class="etiquette">' + ech(MOTIF_LABELS[l.motif] || l.motif) + '</span>' +
         '<span class="discret">' + ech(GENRE_SIGNALE_LABELS[l.genre] || l.genre) + '</span>' +
         (l.contenu_supprime ? '<span class="pastille-attention">Contenu supprimé</span>' : '') +
@@ -1616,8 +1671,7 @@
       imgTag(l.storage_path, 'photos', 'fiche-image') +
       '<p class="discret" style="margin-top:8px">Visé : ' + ech(l.signale_nom || 'compte introuvable') +
         (l.signale_banni ? ' (déjà banni)' : '') + ' · ' + nb(l.antecedents) + ' ' +
-        ech(accord(l.antecedents, 'antécédent', 'antécédents')) + '</p>' +
-      '<div class="fiche-actions">' + actions + '</div></div>';
+        ech(accord(l.antecedents, 'antécédent', 'antécédents')) + '</p>';
   }
 
   async function chargerSignalements() {
@@ -1692,8 +1746,134 @@
         bouton.disabled = false;
         return;
       }
-      await sb.rpc('traiter_signalement', { p_report: bouton.getAttribute('data-report'), p_statut: 'traite' });
+      /*
+        🔴 **Cette erreur-là était avalée** *(audit du 19 septembre 2026)*.
+        L'appel se faisait sans regarder ce qu'il rendait : si le marquage
+        échouait, la fiche disparaissait quand même de l'écran et le message
+        annonçait le bannissement — pendant que le signalement **restait
+        ouvert** et revenait à l'onglet suivant.
+
+        ⚠️ Le bannissement, lui, a bien eu lieu : on ne le défait pas, on le
+        dit. Les deux moitiés du geste ne réussissent pas ensemble, et le
+        message doit nommer celle qui manque plutôt que de promettre les deux.
+      */
+      var rs = await sb.rpc('traiter_signalement', {
+        p_report: bouton.getAttribute('data-report'),
+        p_statut: 'traite',
+      });
+
+      if (rs.error) {
+        poserEtat('etatSignalements', 'alerte',
+          direLeBannissement(rb.data) +
+          " En revanche le signalement n'a pas pu être marqué traité — il est encore dans la file.");
+        bouton.disabled = false;
+        return;
+      }
+
+      /*
+        L'onglet « Bannis » est chargé paresseusement et gardé en mémoire : sans
+        cette ligne, le compte qu'on vient de bannir n'y apparaîtrait pas, et on
+        croirait la liste fausse.
+      */
+      chargesOnglets.bannis = false;
       retirer(direLeBannissement(rb.data));
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     Onglet — Bannis
+     --------------------------------------------------------------------- */
+
+  /** « jusqu'au 26 septembre 2026 », ou rien si la date est illisible. */
+  function jusquA(quand) {
+    var d = new Date(quand);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function ficheBanni(l) {
+    /*
+      ⚠️ Le définitif se signale, le temporaire se date. Les deux ne réclament
+      pas la même attention : l'un attend un humain, l'autre attend une date.
+    */
+    var duree = l.definitif
+      ? '<span class="pastille-attention">Définitif</span>'
+      : '<span class="discret">Jusqu\'au ' + ech(jusquA(l.banni_jusqu_au)) + '</span>';
+
+    var vu = l.derniere_activite
+      ? 'Vu pour la dernière fois le ' + ech(jusquA(l.derniere_activite))
+      : 'Jamais vu actif';
+
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete">' +
+        '<span class="etiquette">' + ech(l.nom || 'Compte sans nom') + '</span>' +
+        duree +
+      '</div>' +
+      '<p class="discret" style="margin-top:8px">' + ech(vu) + ' · ' +
+        nb(l.signalements) + ' ' +
+        ech(accord(l.signalements, 'signalement reçu', 'signalements reçus')) + '</p>' +
+      '<div class="fiche-actions">' +
+        '<button type="button" data-action="lever" data-profil="' + l.profil + '" ' +
+          'data-nom="' + ech(l.nom || 'Ce compte') + '">Lever le bannissement</button>' +
+      '</div></div>';
+  }
+
+  async function chargerBannis() {
+    $('actualiserBannis').disabled = true;
+    var liste = $('listeBannis');
+    try {
+      var r = await sb.rpc('bannis_a_regarder', { p_limite: 50 });
+      if (r.error) {
+        poserEtat('etatBannis', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length
+        ? lignes.map(ficheBanni).join('')
+        : '<p class="fiche-vide">Aucun compte banni.</p>';
+    } catch (cause) {
+      poserEtat('etatBannis', 'critique', String(cause));
+    } finally {
+      $('actualiserBannis').disabled = false;
+      chargesOnglets.bannis = true;
+    }
+  }
+
+  $('listeBannis').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action="lever"]');
+    if (!bouton) return;
+
+    /*
+      La confirmation est demandée **sans** sélecteur de durée : lever n'a pas
+      de durée. Passer `true` ici afficherait une liste « 7 jours / 30 jours »
+      au-dessus d'un bouton qui rend l'accès — exactement le genre d'écran qui
+      fait douter de ce qu'on vient de faire.
+    */
+    var ok = await confirmer('Lever ce bannissement ?',
+      bouton.getAttribute('data-nom') + ' retrouvera la découverte, le fil et ' +
+      'les profils publics. Ses signalements restent en base, et rien ne ' +
+      "l'empêche d'être banni à nouveau.",
+      'Lever', false);
+    if (!ok) return;
+
+    bouton.disabled = true;
+    var r = await sb.rpc('bannir_profil', {
+      p_profil: bouton.getAttribute('data-profil'),
+      p_bannir: false,
+      p_jours: null,
+    });
+
+    if (r.error) {
+      poserEtat('etatBannis', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+
+    bouton.closest('.fiche').remove();
+    poserEtat('etatBannis', 'calme', 'Bannissement levé.');
+    if (!$('listeBannis').querySelector('.fiche')) {
+      $('listeBannis').innerHTML = '<p class="fiche-vide">Aucun compte banni.</p>';
     }
   });
 
@@ -1850,6 +2030,7 @@
       return;
     }
     bouton.closest('.fiche').remove();
+    chargesOnglets.bannis = false;
     poserEtat('etatSuspects', 'calme', direLeBannissement(r.data));
     if (!$('listeSuspects').querySelector('.fiche')) {
       $('listeSuspects').innerHTML = '<p class="fiche-vide">Aucun profil à regarder.</p>';
@@ -1974,6 +2155,7 @@
   var chargesOnglets = {};
   var CHARGEURS_ONGLET = {
     signalements: chargerSignalements,
+    bannis: chargerBannis,
     badges: chargerBadges,
     suspects: chargerSuspects,
     plantages: chargerPlantages,
@@ -2003,6 +2185,7 @@
 
   $('actualiserSignalements').addEventListener('click', chargerSignalements);
   $('filtreSignalements').addEventListener('change', chargerSignalements);
+  $('actualiserBannis').addEventListener('click', chargerBannis);
   $('actualiserBadges').addEventListener('click', chargerBadges);
   $('actualiserSuspects').addEventListener('click', chargerSuspects);
   $('actualiserPlantages').addEventListener('click', chargerPlantages);
