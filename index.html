@@ -508,7 +508,28 @@
     td.barre { min-width: 44px; }
     .fiche-image, .fiche-image-vide { max-width: 100%; width: 140px; }
   }
+
+  /*
+    Le défi anti-robot. Cloudflare dessine le widget lui-même ; on ne lui pose
+    qu'une marge, et une ligne d'attente qui dit ce qui se passe tant qu'il ne
+    s'est rien affiché.
+  */
+  .defi { margin-top: 14px; min-height: 65px; }
+  .defi-attente { font-size: 13px; color: var(--doux); margin: 6px 0 0; }
 </style>
+
+<!--
+  ⚠️ **Le seul script qui vienne d'ailleurs, et il n'y a pas le choix.**
+
+  Tout le reste de cette page voyage avec elle — `supabase-js` est recopié dans
+  `vendor/`, précisément pour ne dépendre d'aucun réseau tiers. Turnstile, lui,
+  ne peut pas être recopié : le défi est résolu **chez Cloudflare**, et un
+  fichier figé ne saurait pas le faire.
+
+  `render=explicit` : sans ça, la bibliothèque cherche les widgets au chargement
+  et dessine celui d'un formulaire caché. On lui dit donc quand dessiner.
+-->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 
@@ -565,6 +586,34 @@
       hidden style="margin-top:12px">
     <button type="button" id="valider" hidden style="width:100%;margin-top:10px">Valider le code</button>
   </form>
+
+  <!--
+    🔴 **Le défi anti-robot, allumé dans Supabase le 19 septembre 2026.**
+
+    Sans le jeton qu'il produit, le serveur refuse **les deux portes** avant
+    même de regarder le mot de passe :
+
+        {"error_code":"captcha_failed",
+         "msg":"captcha protection: request disallowed (no captcha_token found)"}
+
+    ⚠️ Ce jour-là, six points d'appel de l'application ont été câblés et **cette
+    page a été oubliée** — c'est une page web, pas un écran de l'application, et
+    elle est restée hors du lot. Le tableau de bord est devenu inatteignable
+    pour son propre exploitant, mot de passe compris.
+
+    💡 **Un seul widget pour les deux formulaires**, posé en dehors d'eux : ils
+    se remplacent l'un l'autre, et Cloudflare ne dessine pas dans un bloc caché.
+    Le jeton ne sert qu'une fois — `remettreLeDefi()` s'en occupe après chaque
+    tentative, sans quoi le deuxième essai échouerait toujours.
+
+    🔴 **Cette page ne s'ouvre plus depuis le disque.** Cloudflare vérifie que
+    l'hôte qui affiche le widget est déclaré dans la liste ; un fichier ouvert
+    en `file://` n'a pas d'hôte, et le défi est refusé. Il faut donc passer par
+    l'adresse publiée — c'était vrai de l'application depuis le 18 septembre,
+    ça devient vrai du tableau de bord.
+  -->
+  <div id="defi" class="defi"></div>
+  <p id="defiAttente" class="defi-attente">Contrôle anti-robot en cours…</p>
 
   <p id="erreur"></p>
 </section>
@@ -720,6 +769,109 @@
 
   var sb = supabase.createClient(URL_PROJET, CLE_PUBLIABLE);
   var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------------------------------------------------------------------
+     Le défi anti-robot
+
+     La clé ci-dessous est **publique** : elle s'affiche dans le code de toute
+     page qui utilise Turnstile, et elle ne vaut rien sans la clé secrète —
+     laquelle vit uniquement dans le tableau de bord Supabase, et n'entre ni
+     dans ce dépôt ni dans cette page.
+
+     C'est la même que celle de l'application *(`eas.json`)*, et l'hôte est le
+     même : `affrontry.github.io` est déjà déclaré chez Cloudflare. Il n'y a
+     donc rien à changer ni chez Cloudflare, ni chez Supabase.
+     --------------------------------------------------------------------- */
+  var CLE_TURNSTILE = '0x4AAAAAAE80pTPx0oMMEcYr';
+
+  var jetonDefi = null;
+  var widgetDefi = null;
+
+  function direLAttente(texte) {
+    var ligne = $('defiAttente');
+    ligne.hidden = !texte;
+    ligne.textContent = texte || '';
+  }
+
+  /*
+    ⚠️ **Le script de Cloudflare est `async`** : il peut arriver après ce code
+    comme avant lui. Un rappel `onload=` posé ici serait donc perdu une fois
+    sur deux. On l'attend, et au bout de dix secondes on **dit** qu'il manque
+    plutôt que de laisser un cadre vide sous les formulaires.
+  */
+  function quandLeDefiEstPret(suite) {
+    if (window.turnstile) { suite(); return; }
+    var essais = 0;
+    var minuteur = setInterval(function () {
+      if (window.turnstile) { clearInterval(minuteur); suite(); return; }
+      if (++essais > 100) {
+        clearInterval(minuteur);
+        direLAttente("Le contrôle anti-robot n'a pas pu se charger. " +
+          'Vérifie ta connexion, puis recharge la page.');
+      }
+    }, 100);
+  }
+
+  quandLeDefiEstPret(function () {
+    widgetDefi = window.turnstile.render('#defi', {
+      sitekey: CLE_TURNSTILE,
+      theme: 'auto',
+      language: 'fr',
+      callback: function (jeton) { jetonDefi = jeton; direLAttente(''); },
+      'expired-callback': function () {
+        jetonDefi = null;
+        direLAttente('Le contrôle a expiré. Il se refait tout seul.');
+        window.turnstile.reset(widgetDefi);
+      },
+      'error-callback': function () {
+        jetonDefi = null;
+        direLAttente('Le contrôle anti-robot a échoué. Recharge la page.');
+      }
+    });
+  });
+
+  /**
+   * Un jeton ne sert **qu'une fois**. Sans cette remise à zéro après chaque
+   * tentative, un second essai échouerait toujours — et l'on chercherait la
+   * faute du côté du mot de passe.
+   */
+  function remettreLeDefi() {
+    jetonDefi = null;
+    if (window.turnstile && widgetDefi !== null) {
+      window.turnstile.reset(widgetDefi);
+      direLAttente('Contrôle anti-robot en cours…');
+    }
+  }
+
+  /*
+    Sans jeton, l'appel partirait pour rien et reviendrait avec une phrase
+    anglaise que personne n'a à déchiffrer. On le dit avant de partir.
+  */
+  function leDefiEstPasse() {
+    if (jetonDefi) return true;
+    $('erreur').textContent = "Le contrôle anti-robot n'est pas encore passé. " +
+      'Attends une seconde et réessaie.';
+    return false;
+  }
+
+  /**
+   * Les refus des deux portes, dits en français.
+   *
+   * ⚠️ « Invalid login credentials » ne distingue PAS un mot de passe faux
+   * d'un compte qui n'en a aucun : Supabase rend la même phrase dans les deux
+   * cas, à dessein. Le message nomme donc la seconde porte, toujours.
+   */
+  function direLErreurDAuth(erreur) {
+    var m = String((erreur && erreur.message) || '');
+    if (m.toLowerCase().indexOf('captcha') !== -1) {
+      return 'Le contrôle anti-robot a été refusé. Recharge la page et recommence.';
+    }
+    if (m === 'Invalid login credentials') {
+      return "Adresse ou mot de passe incorrect — ou ce compte n'a pas de mot de " +
+        'passe. Utilise le code par e-mail ci-dessus.';
+    }
+    return m;
+  }
 
   function nb(n) {
     if (n === null || n === undefined) return '—';
@@ -1923,24 +2075,20 @@
   $('formulaire').addEventListener('submit', async function (e) {
     e.preventDefault();
     $('erreur').textContent = '';
+    if (!leDefiEstPasse()) return;
     $('entrer').disabled = true;
 
     var r = await sb.auth.signInWithPassword({
       email: $('adresse').value.trim(),
-      password: $('motdepasse').value
+      password: $('motdepasse').value,
+      options: { captchaToken: jetonDefi }
     });
 
+    remettreLeDefi();
     $('entrer').disabled = false;
 
     if (r.error) {
-      /*
-        ⚠️ Nommer la seconde porte, toujours. Ce message ne peut PAS distinguer
-        un mot de passe faux d'un compte qui n'en a aucun : Supabase rend la
-        même phrase dans les deux cas, à dessein.
-      */
-      $('erreur').textContent = r.error.message === 'Invalid login credentials'
-        ? "Adresse ou mot de passe incorrect — ou ce compte n'a pas de mot de passe. Utilise le code par e-mail ci-dessus."
-        : r.error.message;
+      $('erreur').textContent = direLErreurDAuth(r.error);
       return;
     }
 
@@ -1963,6 +2111,7 @@
   $('formulaireCode').addEventListener('submit', async function (e) {
     e.preventDefault();
     $('erreur').textContent = '';
+    if (!leDefiEstPasse()) return;
     $('demander').disabled = true;
 
     /*
@@ -1972,12 +2121,13 @@
     */
     var r = await sb.auth.signInWithOtp({
       email: $('adresseCode').value.trim(),
-      options: { shouldCreateUser: false }
+      options: { shouldCreateUser: false, captchaToken: jetonDefi }
     });
 
+    remettreLeDefi();
     $('demander').disabled = false;
 
-    if (r.error) { $('erreur').textContent = r.error.message; return; }
+    if (r.error) { $('erreur').textContent = direLErreurDAuth(r.error); return; }
 
     $('etapeCode').hidden = false;
     $('code').hidden = false;
@@ -1989,6 +2139,12 @@
     $('erreur').textContent = '';
     $('valider').disabled = true;
 
+    /*
+      ⚠️ **Pas de jeton ici, et ce n'est pas un oubli.** Le défi garde l'ENVOI
+      du code — le point qui coûte de l'argent et qu'on peut faire tourner en
+      boucle. La vérification, elle, exige déjà le code reçu dans la boîte, et
+      `verifyOtp` n'accepte pas de `captchaToken`.
+    */
     var r = await sb.auth.verifyOtp({
       email: $('adresseCode').value.trim(),
       token: $('code').value.trim(),
@@ -1997,7 +2153,7 @@
 
     $('valider').disabled = false;
 
-    if (r.error) { $('erreur').textContent = r.error.message; return; }
+    if (r.error) { $('erreur').textContent = direLErreurDAuth(r.error); return; }
 
     $('code').value = '';
     afficherLeBord(true);
