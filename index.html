@@ -214,10 +214,6 @@
   .reponse { margin: 0 0 14px; font-size: 14px; line-height: 1.45; color: var(--doux); }
   .reponse strong { color: var(--texte); font-weight: 700; }
 
-  /* ---- Le verdict et le geste qu'il appelle, sur la meme ligne -------- */
-  .rangee-verdict { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
-  .rangee-verdict .verdict { margin-top: 0; }
-
   /* ---- Le detail : replie, jamais retire ----------------------------- */
   /*
     ⚠️ Un chiffre replié reste un chiffre affiché.
@@ -239,14 +235,12 @@
   details.detail .rangs { margin-top: 0; border-top: none; }
   details.detail .cadre { margin-top: 4px; }
 
-  /* ---- La figure héroïque : une seule par vue ------------------------- */
-  .heros { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
-  .heros .nombre {
-    font-size: 52px; font-weight: 800; line-height: .95;
-    letter-spacing: -.02em;   /* proportionnel, jamais tabulaire */
-  }
-  .heros .unite { font-size: 20px; font-weight: 700; color: var(--doux); }
-  .heros-legende { color: var(--doux); font-size: 13px; margin: 6px 0 0; }
+  /*
+    ⚠️ **`.heros` et `.rangee-verdict` ont été retirés le 19 septembre 2026**,
+    avec la figure héroïque qu'ils habillaient. Des styles morts dans un fichier
+    unique qu'on tient à la main ne se remarquent jamais : ils se recopient, et
+    quelqu'un finit par croire qu'ils décrivent l'écran.
+  */
 
   /* ---- Le verdict : un signe, un mot, une couleur -------------------- */
   .verdict {
@@ -266,13 +260,28 @@
     display: flex; align-items: baseline; gap: 10px;
     padding: 9px 0; border-top: 1px solid var(--trait);
   }
-  .afaire .pastille {
-    flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%;
-    background: currentColor; transform: translateY(-1px);
+  /*
+    ⚠️ **Le signe, et plus une pastille** *(19 septembre 2026)*. C'était un rond
+    de 8 points, teinté par `currentColor` : l'état ne se lisait donc **qu'à la
+    couleur**, et un daltonien voyait sept ronds identiques. `verdict()` posait
+    déjà le signe partout ailleurs dans la page ; cette liste était le seul
+    endroit qui y échappait, et c'est devenu l'endroit le plus lu.
+  */
+  .afaire .signe {
+    flex: 0 0 auto; width: 1.1em; text-align: center;
+    font-size: 13px; line-height: 1;
   }
   .afaire .compte { font-weight: 700; font-size: 17px; min-width: 1.6em; color: var(--texte); }
   .afaire .quoi { flex: 1; color: var(--texte); }
   .afaire .apres { color: var(--doux); font-size: 12px; }
+
+  /*
+    Une file à zéro reste écrite, mais s'efface : elle dit « j'ai regardé »,
+    pas « occupe-toi de moi ». Sans ce gris, sept lignes vertes pèsent autant
+    que la seule qui réclame un geste.
+  */
+  .afaire li.rien .compte, .afaire li.rien .quoi { color: var(--doux); font-weight: 400; }
+  .afaire li.rien .compte { font-size: 15px; }
   /*
     Le raccourci vers l'onglet qui porte la file. Il n'ouvre aucun droit : il
     clique l'onglet à notre place, donc le chargement paresseux et la
@@ -498,7 +507,6 @@
   @media (max-width: 480px) {
     body { padding: 10px; }
     .carte { padding: 14px 12px; margin-bottom: 12px; }
-    .heros .nombre { font-size: 44px; }
 
     /*
       ⚠️ Le titre prend une ligne entière, les boutons la suivante.
@@ -957,9 +965,18 @@
       ech(texte) + '</span>';
   }
 
+  /**
+   * Une ligne de la liste d'accueil.
+   *
+   * ⚠️ Le signe vient de la même table que `verdict()` — ▲ ● ✓ —, pour que
+   * l'état se lise **sans la couleur**. Il n'est pas `aria-hidden` : lu à voix
+   * haute il donne « triangle », ce qui est pauvre mais pas muet, et le mot
+   * qui suit porte le sens de toute façon.
+   */
   function ligneAFaire(etat, compte, quoi, apres, onglet) {
-    return '<li class="v-' + etat + '">' +
-      '<span class="pastille" aria-hidden="true"></span>' +
+    var signes = { critique: '▲', alerte: '●', calme: '✓' };
+    return '<li class="v-' + etat + (etat === 'calme' ? ' rien' : '') + '">' +
+      '<span class="signe">' + signes[etat] + '</span>' +
       '<span class="compte">' + nb(compte) + '</span>' +
       '<span class="quoi">' + ech(quoi) + '</span>' +
       (apres ? '<span class="apres">' + ech(apres) + '</span>' : '') +
@@ -1216,51 +1233,62 @@
       .sort(function (a, b) { return b.rang - a.rang; });
     var calmes = travaux.filter(function (t) { return !(t.n > 0); });
 
+    /* ---------------------------------------------------------------------
+       🔴 **La figure héroïque est retirée** *(19 septembre 2026, refonte
+       demandée par l'exploitant)*.
+
+       Elle affichait en 52 points le chiffre de la file la plus urgente. Deux
+       défauts, tous les deux mesurés ce jour-là :
+
+       - **Elle ne montrait qu'une file sur sept.** Les six autres tenaient
+         dans des puces grises en dessous, et trois d'entre elles n'ont
+         **jamais** rien eu à afficher — 0 signalement, 0 badge, 0 profil
+         suspect depuis que la base existe. L'exploitant ouvrait donc des
+         onglets vides pour trouver le seul qui ne l'était pas.
+       - **Le jour calme était le pire.** Sans file, elle annonçait « 0 à
+         faire » en très gros : un non-événement occupait tout le haut de
+         l'écran, et l'œil apprenait à sauter ce bloc.
+
+       💡 **Ce qui la remplace tient en une règle** : *toutes les files, toujours
+       écrites, dans l'ordre de ce qui réclame un geste.* Celle qui appelle une
+       action porte son bouton ; celle qui est à zéro reste là, en gris, et dit
+       simplement qu'on a regardé. Rien ne se replie, donc rien ne se cherche.
+       --------------------------------------------------------------------- */
     var html = '<section class="carte"><h2 class="question">Est-ce que ça tourne ?</h2>';
 
     if (afaire.length === 0) {
-      html += '<p class="reponse">Oui — <strong>aucune file n\'attend</strong>.</p>' +
-        '<div class="heros"><span class="nombre v-calme">0</span>' +
-        '<span class="unite">à faire</span></div>';
+      html += '<p class="reponse">Oui — <strong>aucune file n\'attend</strong>.</p>';
     } else {
-      var tete = afaire[0];
-      var reste = afaire.length - 1;
-
-      html += '<p class="reponse">Le plus pressé : <strong>' + nb(tete.n) + ' ' +
-        ech(tete.quoi) + '</strong>' +
-        (reste > 0
-          ? ', et ' + (reste > 1 ? nb(reste) + ' autres files attendent' : 'une autre file attend')
-          : '') + '.</p>';
-
-      html += '<div class="heros"><span class="nombre v-' + tete.etat + '">' +
-        nb(tete.n) + '</span><span class="unite">' + ech(tete.quoi) + '</span></div>';
-
-      html += '<div class="rangee-verdict">' +
-        verdict(tete.etat, tete.etat === 'critique' ? 'À traiter maintenant' : 'À traiter') +
-        (tete.onglet
-          ? '<button type="button" class="petit" data-va-vers="' + ech(tete.onglet) +
-            '">Ouvrir</button>'
-          : '') +
-        '</div>';
-
-      if (reste > 0) {
-        html += '<ul class="afaire">' + afaire.slice(1).map(function (t) {
-          return ligneAFaire(t.etat, t.n, t.quoi, t.apres, t.onglet);
-        }).join('') + '</ul>';
-      }
+      html += '<p class="reponse">' +
+        (afaire.length > 1
+          ? '<strong>' + nb(afaire.length) + ' files</strong> réclament un geste'
+          : '<strong>Une file</strong> réclame un geste') +
+        ', la plus pressée en premier.</p>';
     }
 
     /*
-      ⚠️ Ce qui est à zéro ne s'affiche pas, il se replie.
-
-      Neuf zéros alignés ne disent rien qu'un « rien à signaler » ne dise
-      mieux — et ils enterrent les chiffres qui appellent un geste.
+      Les sept lignes, sans exception : ce qui attend d'abord, puis ce qui est
+      à zéro. `calmes` garde l'ordre de `filesDeTravail`, qui est celui de
+      l'importance — un jour sans rien à faire se lit donc toujours pareil.
     */
-    if (calmes.length > 0) {
-      html += '<p class="note" style="border-color:var(--calme)">' +
-        verdict('calme', 'Rien à signaler') + '<br>' +
-        ech(calmes.map(function (t) { return t.nom; }).join(', ')) + '.</p>';
-    }
+    html += '<ul class="afaire">' +
+      afaire.map(function (t) {
+        return ligneAFaire(t.etat, t.n, t.quoi, t.apres, t.onglet);
+      }).join('') +
+      calmes.map(function (t) {
+        /*
+          ⚠️ Pas de bouton sur une file vide. Un « Ouvrir » qui mène à « Rien à
+          traiter dans ce statut » est une promesse démentie au clic suivant —
+          et c'est exactement ce qu'on vient de retirer.
+        */
+        /*
+          `quoi` plutôt que `nom` : il est déjà accordé au singulier pour zéro,
+          donc « 0 image à juger » et non « 0 images ». La ligne dit ce qu'on a
+          regardé, pas le nom d'un onglet.
+        */
+        return ligneAFaire('calme', 0, t.quoi, '', null);
+      }).join('') +
+      '</ul>';
 
     /*
       ⚠️ Ce bloc-ci reste affiché même à zéro, et c'est le SEUL.
