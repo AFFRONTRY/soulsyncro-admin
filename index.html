@@ -450,6 +450,30 @@
   .modale-boite h2 { font-size: 17px; margin: 0 0 10px; }
   .modale-boite p { font-size: 14px; color: var(--doux); white-space: pre-line; }
   .modale-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+  /*
+    La duree du bannissement (0134). Elle vit au-dessus des deux boutons et non
+    a cote : c'est une decision qu'on prend AVANT de confirmer, pas un reglage
+    qu'on ajuste en confirmant.
+  */
+  .modale-duree { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .modale-duree label { font-size: 14px; color: var(--doux); }
+  .modale-duree select {
+    font: inherit; padding: 8px 10px; min-height: 40px; flex: 1;
+    border: 1px solid var(--trait); border-radius: 10px;
+    background: var(--carte); color: var(--texte);
+  }
+  .modale-duree select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ---- Écrire à quelqu'un : le seul endroit de la page où l'on tape ---- */
+  .modale-boite textarea {
+    font: inherit; width: 100%; min-height: 130px; resize: vertical;
+    padding: 12px 14px; margin-top: 4px;
+    border: 1px solid var(--trait); border-radius: 10px;
+    background: var(--fond); color: var(--texte);
+  }
+  .modale-boite textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .compte-restant { font-size: 12px; color: var(--doux); text-align: right; margin: 6px 0 0; }
+  .compte-restant.trop { color: var(--critique); font-weight: 700; }
 
   /*
     Dans la modale, le bouton qui tranche redevient un aplat.
@@ -624,9 +648,47 @@
   <div class="modale-boite">
     <h2 id="modaleTitre"></h2>
     <p id="modaleTexte"></p>
+    <!--
+      ⚠️ La duree par defaut est SEPT JOURS, pas « definitif » (0134).
+
+      Un bannissement est une pause avant d'etre une porte fermee : c'est ce que
+      l'exploitant a dit le 19 septembre 2026, et la valeur par defaut est le
+      seul endroit ou une regle de ce genre tient vraiment. Le definitif reste
+      a un cran de souris, en bas de la liste, pour qui le veut.
+    -->
+    <div class="modale-duree" id="modaleDuree" hidden>
+      <label for="modaleJours">Duree</label>
+      <select id="modaleJours">
+        <option value="7" selected>7 jours</option>
+        <option value="30">30 jours</option>
+        <option value="90">90 jours</option>
+        <option value="">Definitif</option>
+      </select>
+    </div>
     <div class="modale-actions">
       <button type="button" class="sobre" id="modaleAnnuler">Annuler</button>
       <button type="button" class="danger" id="modaleConfirmer">Bannir</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  ⚠️ Une seconde modale, et non la première réoutillée.
+
+  Celle du bannissement ne porte qu'un titre et un texte : elle CONFIRME. Celle-ci
+  RECUEILLE. Mêler les deux obligerait chaque appel à dire ce qu'il n'est pas, et
+  c'est ainsi qu'un jour un bouton « Bannir » se retrouve sous une zone de saisie.
+-->
+<div class="voile" id="modaleEcrire" hidden>
+  <div class="modale-boite">
+    <h2 id="ecrireTitre"></h2>
+    <p id="ecrireAide"></p>
+    <textarea id="ecrireTexte" maxlength="1000" rows="6"
+      placeholder="Bonjour, ..." aria-label="Message a envoyer"></textarea>
+    <p class="compte-restant" id="ecrireCompte"></p>
+    <div class="modale-actions">
+      <button type="button" class="sobre" id="ecrireAnnuler">Annuler</button>
+      <button type="button" id="ecrireEnvoyer">Envoyer</button>
     </div>
   </div>
 </div>
@@ -738,6 +800,7 @@
   var MOTIF_LABELS = {
     faux_profil: 'Faux profil', harcelement: 'Harcèlement',
     contenu_choquant: 'Contenu choquant', arnaque: 'Arnaque',
+    proposition_tarifee: 'Proposition sexuelle tarifée',
     mineur: 'Personne mineure', autre: 'Autre'
   };
 
@@ -829,11 +892,34 @@
    * textes de `demanderBannissement` / `demanderBannissementProfil`
    * (`app/moderation.tsx:224-255`). Tout le reste part au premier clic.
    */
-  function confirmer(titre, texte, texteBouton) {
+  /**
+   * Dit ce que `bannir_profil` vient de rendre (0134).
+   *
+   * ⚠️ Sans cette phrase, un bannissement de sept jours et un bannissement
+   * definitif donnent exactement le meme retour a l'ecran — et la duree devient
+   * une liste dont personne ne verifie l'effet.
+   */
+  function direLeBannissement(fin) {
+    if (!fin) return 'Compte banni definitivement.';
+    var d = new Date(fin);
+    if (isNaN(d.getTime())) return 'Compte banni.';
+    return 'Compte banni jusqu’au ' +
+      d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.';
+  }
+
+  function confirmer(titre, texte, texteBouton, avecDuree) {
     return new Promise(function (resolve) {
       $('modaleTitre').textContent = titre;
       $('modaleTexte').textContent = texte;
       $('modaleConfirmer').textContent = texteBouton || 'Confirmer';
+      /*
+        La liste se remet a sept jours a chaque ouverture (0134). Sans cela, un
+        moderateur qui a choisi « definitif » une fois le reconduirait sans le
+        voir au bannissement suivant — une valeur qui reste est une valeur qu'on
+        cesse de lire.
+      */
+      $('modaleDuree').hidden = !avecDuree;
+      if (avecDuree) $('modaleJours').value = '7';
       $('modale').hidden = false;
 
       function fermer(valeur) {
@@ -842,7 +928,18 @@
         $('modaleAnnuler').removeEventListener('click', surAnnuler);
         resolve(valeur);
       }
-      function surConfirmer() { fermer(true); }
+      /*
+        Rend `false` si l'on annule, sinon un objet — jamais `true`.
+
+        ⚠️ Un objet est toujours vrai en JavaScript : les appels existants qui
+        testent `if (!ok) return;` continuent de marcher mot pour mot, et ceux
+        qui veulent la duree lisent `ok.jours`. Rendre un nombre aurait casse
+        ce test le jour ou la duree aurait valu zero.
+      */
+      function surConfirmer() {
+        var choix = avecDuree ? $('modaleJours').value : '';
+        fermer({ jours: choix === '' ? null : parseInt(choix, 10) });
+      }
       function surAnnuler() { fermer(false); }
 
       $('modaleConfirmer').addEventListener('click', surConfirmer);
@@ -1249,6 +1346,89 @@
     return html + '</section>';
   }
 
+  /**
+   * Recueille un message pour quelqu'un, et l'envoie.
+   *
+   * Rend `true` si c'est parti, `false` si l'on a renoncé. Les erreurs sont
+   * posées sur la ligne d'état du panneau appelant, jamais avalées.
+   *
+   * ---------------------------------------------------------------------------
+   * ⚠️ Trois choses que ce geste NE fait pas, et qu'il faut savoir en l'employant
+   * ---------------------------------------------------------------------------
+   *
+   * **Personne ne peut répondre.** La messagerie exige un match, et un
+   * modérateur n'en a avec personne. Un message qui pose une question laissera
+   * son destinataire sans aucun moyen d'y répondre — c'est écrit sous le titre,
+   * à l'endroit où on s'apprête à taper.
+   *
+   * **Le nom du modérateur n'apparaît pas** chez le destinataire. Il est
+   * enregistré dans `messages_moderation`, que personne ne lit depuis un
+   * client : anonyme envers la personne, jamais anonyme tout court.
+   *
+   * **Ce n'est ni un avertissement, ni une sanction.** L'avertissement
+   * automatique existe déjà et part tout seul ; celui-ci ne porte que les mots
+   * qu'on y met.
+   */
+  function ecrireA(profil, nom) {
+    return new Promise(function (resolve) {
+      var zone = $('ecrireTexte');
+      var compteur = $('ecrireCompte');
+
+      $('ecrireTitre').textContent = 'Écrire à ' + (nom || 'cette personne');
+      $('ecrireAide').textContent =
+        "Le message arrive dans ses notifications et sur son téléphone. " +
+        "Il ne peut pas y répondre, et ton nom n'apparaît pas.";
+      zone.value = '';
+      $('modaleEcrire').hidden = false;
+      zone.focus();
+
+      function compter() {
+        var reste = 1000 - zone.value.length;
+        compteur.textContent = reste + ' caractères restants';
+        compteur.classList.toggle('trop', reste < 50);
+        $('ecrireEnvoyer').disabled = zone.value.trim() === '';
+      }
+      compter();
+
+      function fermer(valeur) {
+        $('modaleEcrire').hidden = true;
+        zone.removeEventListener('input', compter);
+        $('ecrireEnvoyer').removeEventListener('click', surEnvoyer);
+        $('ecrireAnnuler').removeEventListener('click', surAnnuler);
+        resolve(valeur);
+      }
+
+      async function surEnvoyer() {
+        var texte = zone.value.trim();
+        if (!texte) return;
+
+        $('ecrireEnvoyer').disabled = true;
+        var r = await sb.rpc('envoyer_message_moderation', {
+          p_profil: profil,
+          p_texte: texte
+        });
+
+        if (r.error) {
+          /*
+            ⚠️ On ne referme PAS sur une erreur : le message écrit reste à
+            l'écran. Refermer ferait perdre un texte qu'il faudrait retaper, et
+            c'est la façon la plus sûre de faire renoncer quelqu'un.
+          */
+          $('ecrireAide').textContent = expliquerErreur(r.error.message);
+          $('ecrireEnvoyer').disabled = false;
+          return;
+        }
+        fermer(true);
+      }
+
+      function surAnnuler() { fermer(false); }
+
+      zone.addEventListener('input', compter);
+      $('ecrireEnvoyer').addEventListener('click', surEnvoyer);
+      $('ecrireAnnuler').addEventListener('click', surAnnuler);
+    });
+  }
+
   /* ---------------------------------------------------------------------
      Onglet — Signalements
      --------------------------------------------------------------------- */
@@ -1256,6 +1436,17 @@
     var actions =
       '<button type="button" data-action="rejeter" data-id="' + l.id + '">Classer sans suite</button>' +
       '<button type="button" data-action="traiter" data-id="' + l.id + '">Marquer traité</button>';
+
+    /*
+      Écrire avant de bannir, dans l'ordre des boutons comme dans celui des
+      gestes : la plupart des signalements se règlent par un mot, et le bouton
+      rouge ne doit pas être le seul recours visible.
+    */
+    if (l.signale_id) {
+      actions += '<button type="button" class="sobre" data-action="ecrire" ' +
+        'data-profil="' + l.signale_id + '" ' +
+        'data-nom="' + ech(l.signale_nom || 'cette personne') + '">Écrire</button>';
+    }
 
     if (l.signale_id && !l.signale_banni) {
       actions += '<button type="button" class="danger" data-action="bannir" ' +
@@ -1335,18 +1526,22 @@
       var ok = await confirmer('Bannir ce compte ?',
         bouton.getAttribute('data-nom') + ' disparaîtra de la découverte, du fil et des ' +
         'profils publics. Ses conversations et ses signalements restent en base.',
-        'Bannir');
+        'Bannir', true);
       if (!ok) return;
 
       bouton.disabled = true;
-      var rb = await sb.rpc('bannir_profil', { p_profil: bouton.getAttribute('data-profil'), p_bannir: true });
+      var rb = await sb.rpc('bannir_profil', {
+        p_profil: bouton.getAttribute('data-profil'),
+        p_bannir: true,
+        p_jours: ok.jours,
+      });
       if (rb.error) {
         poserEtat('etatSignalements', 'critique', expliquerErreur(rb.error.message));
         bouton.disabled = false;
         return;
       }
       await sb.rpc('traiter_signalement', { p_report: bouton.getAttribute('data-report'), p_statut: 'traite' });
-      retirer('Compte banni.');
+      retirer(direLeBannissement(rb.data));
     }
   });
 
@@ -1424,10 +1619,13 @@
       return '<li>' + ech(m) + (p.details && p.details[i] ? ' — ' + ech(p.details[i]) : '') + '</li>';
     }).join('');
 
-    var action = p.banni
-      ? '<span class="discret">Déjà banni</span>'
-      : '<button type="button" class="danger" data-action="bannir" data-profil="' + p.profil +
-        '" data-nom="' + ech(p.nom || 'Cette personne') + '">Bannir</button>';
+    var action =
+      '<button type="button" class="sobre" data-action="ecrire" data-profil="' + p.profil +
+        '" data-nom="' + ech(p.nom || 'cette personne') + '">Écrire</button>' +
+      (p.banni
+        ? ' <span class="discret">Déjà banni</span>'
+        : '<button type="button" class="danger" data-action="bannir" data-profil="' + p.profil +
+          '" data-nom="' + ech(p.nom || 'Cette personne') + '">Bannir</button>');
 
     return '<div class="carte fiche">' +
       '<div class="fiche-tete"><span class="etiquette">' + ech(p.nom || 'Compte') + '</span>' +
@@ -1458,6 +1656,25 @@
     }
   }
 
+  /*
+    Un seul écouteur pour les deux panneaux : le geste est le même, seule la
+    ligne d'état change. Dupliquer la fonction ferait diverger les deux textes
+    d'erreur le jour où l'on en corrige un.
+  */
+  ['listeSignalements', 'listeSuspects'].forEach(function (liste) {
+    $(liste).addEventListener('click', async function (e) {
+      var bouton = e.target.closest('button[data-action="ecrire"]');
+      if (!bouton) return;
+
+      var etat = liste === 'listeSignalements' ? 'etatSignalements' : 'etatSuspects';
+      var parti = await ecrireA(
+        bouton.getAttribute('data-profil'),
+        bouton.getAttribute('data-nom'));
+
+      if (parti) poserEtat(etat, 'calme', 'Message envoyé.');
+    });
+  });
+
   $('listeSuspects').addEventListener('click', async function (e) {
     var bouton = e.target.closest('button[data-action="bannir"]');
     if (!bouton) return;
@@ -1466,18 +1683,22 @@
       bouton.getAttribute('data-nom') + " disparaîtra de la découverte, du fil et des profils " +
       "publics.\n\nAucun humain n'a signalé ce compte : ce sont des signaux automatiques, et " +
       "chacun peut avoir une explication ordinaire.",
-      'Bannir');
+      'Bannir', true);
     if (!ok) return;
 
     bouton.disabled = true;
-    var r = await sb.rpc('bannir_profil', { p_profil: bouton.getAttribute('data-profil'), p_bannir: true });
+    var r = await sb.rpc('bannir_profil', {
+      p_profil: bouton.getAttribute('data-profil'),
+      p_bannir: true,
+      p_jours: ok.jours,
+    });
     if (r.error) {
       poserEtat('etatSuspects', 'critique', expliquerErreur(r.error.message));
       bouton.disabled = false;
       return;
     }
     bouton.closest('.fiche').remove();
-    poserEtat('etatSuspects', 'calme', 'Compte banni.');
+    poserEtat('etatSuspects', 'calme', direLeBannissement(r.data));
     if (!$('listeSuspects').querySelector('.fiche')) {
       $('listeSuspects').innerHTML = '<p class="fiche-vide">Aucun profil à regarder.</p>';
     }
