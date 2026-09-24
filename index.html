@@ -909,6 +909,25 @@
         large de plus d'un quart sera recadrée dans le fil.
       </p>
 
+      <!--
+        La vidéo, facultative (0154). L'image reste obligatoire : c'est la
+        vignette qu'on voit avant d'appuyer sur ▶, et c'est tout ce que voient
+        les téléphones restés sur une ancienne version de l'application.
+        ⚠️ Une page web ne sait pas compresser une vidéo : d'où la limite, et
+        la façon de s'en tirer, écrite sous le champ.
+      -->
+      <label for="annVideo">Vidéo <span class="discret">(facultative — MP4, 30 secondes et 8 Mo au plus)</span></label>
+      <input id="annVideo" type="file" accept="video/mp4">
+      <p class="discret" id="annVideoNote">
+        Elle ne se télécharge dans le fil que si la personne appuie sur ▶.
+        Trop lourde ? Envoie-la-toi sur WhatsApp puis enregistre celle que tu
+        reçois : WhatsApp la compresse.
+      </p>
+      <p id="annVideoActuelle" hidden>
+        <span class="discret" id="annVideoActuelleTexte"></span>
+        <button type="button" class="sobre petit" id="annRetirerVideo">Retirer la vidéo</button>
+      </p>
+
       <div class="fiche-actions">
         <button type="submit" id="annEnregistrer">Enregistrer en brouillon</button>
         <button type="button" class="sobre" id="annAnnuler">Annuler</button>
@@ -2538,12 +2557,16 @@
         ' au ' + ech(dateCourte(a.fin)) + '</p>' +
       atteints(a) +
       imgTag(a.image_chemin, 'annonces', 'fiche-image') +
+      (a.video_chemin ? '<p class="chiffres-annonce">▶ Vidéo · ' + nb(a.video_duree_s) +
+        ' s <span class="discret">— elle se lance à l\'appui</span></p>' : '') +
       '<div class="fiche-contenu" style="margin-top:8px">' + ech(a.texte) + '</div>' +
       (a.lien ? '<p class="discret" style="margin-top:6px">Lien : ' + ech(a.lien) + '</p>' : '') +
       '<p class="chiffres-annonce">' +
         nb(a.affichages) + ' ' + ech(accord(Number(a.affichages), 'affichage', 'affichages')) + ' · ' +
         nb(a.touches) + ' ' + ech(accord(Number(a.touches), 'touche', 'touches')) +
-        ' <span class="discret">— 7 derniers jours : ' + nb(a.affichages_7j) + ' · ' + nb(a.touches_7j) + '</span>' +
+        (a.video_chemin ? ' · ' + nb(a.lectures) + ' ' + ech(accord(Number(a.lectures), 'lecture', 'lectures')) : '') +
+        ' <span class="discret">— 7 derniers jours : ' + nb(a.affichages_7j) + ' · ' + nb(a.touches_7j) +
+        (a.video_chemin ? ' · ' + nb(a.lectures_7j) : '') + '</span>' +
       '</p>' +
       '<p class="chiffres-annonce">Forfait : ' + (a.prix_fcfa === null || a.prix_fcfa === undefined
         ? '<span class="discret">non saisi — il manquera au bénéfice du mois</span>' : fcfa(a.prix_fcfa)) + '</p>' +
@@ -2606,9 +2629,46 @@
     $('annFin').value = a ? a.fin : aujourdhui(6);
     $('annPrix').value = a && a.prix_fcfa !== null && a.prix_fcfa !== undefined ? a.prix_fcfa : '';
     $('annImage').value = '';
+    $('annVideo').value = '';
+    f.dataset.video = a && a.video_chemin ? a.video_chemin : '';
+    f.dataset.videoDuree = a && a.video_duree_s ? String(a.video_duree_s) : '';
+    montrerVideoActuelle();
     f.hidden = false;
     void remplirVilles();
     $('annAnnonceur').focus();
+  }
+
+  /** La vidéo déjà attachée, et le geste pour la retirer. */
+  function montrerVideoActuelle() {
+    var f = $('formAnnonce');
+    $('annVideoActuelle').hidden = !f.dataset.video;
+    $('annVideoActuelleTexte').textContent = f.dataset.video
+      ? 'Vidéo actuelle : ' + f.dataset.videoDuree + ' s. Un nouveau fichier la remplace.'
+      : '';
+  }
+
+  $('annRetirerVideo').addEventListener('click', function () {
+    var f = $('formAnnonce');
+    f.dataset.video = '';
+    f.dataset.videoDuree = '';
+    montrerVideoActuelle();
+    poserEtat('etatAnnonces', 'alerte', 'La vidéo sera retirée à l\'enregistrement.');
+  });
+
+  /**
+   * La durée d'une vidéo, lue par le navigateur sans l'envoyer nulle part.
+   * Rejette si le navigateur ne sait pas la lire — elle ne se lirait pas non
+   * plus sur un téléphone.
+   */
+  function dureeDeLaVideo(fichier) {
+    return new Promise(function (ok, ko) {
+      var v = document.createElement('video');
+      var adresse = URL.createObjectURL(fichier);
+      v.preload = 'metadata';
+      v.onloadedmetadata = function () { URL.revokeObjectURL(adresse); ok(v.duration); };
+      v.onerror = function () { URL.revokeObjectURL(adresse); ko(new Error('Vidéo illisible : choisis un fichier MP4.')); };
+      v.src = adresse;
+    });
   }
 
   function fermerFormulaire() {
@@ -2650,6 +2710,7 @@
     var debut = $('annDebut').value;
     var fin = $('annFin').value;
     var fichier = $('annImage').files[0];
+    var fichierVideo = $('annVideo').files[0];
 
     if (!annonceur || !texte || !ville || !debut || !fin) {
       poserEtat('etatAnnonces', 'critique', 'Le nom, le texte, la ville et les deux dates sont obligatoires.');
@@ -2670,8 +2731,36 @@
       return;
     }
     if (!fichier && !f.dataset.chemin) {
-      poserEtat('etatAnnonces', 'critique', 'Choisis une image.');
+      poserEtat('etatAnnonces', 'critique', 'Choisis une image : elle reste obligatoire, même avec une vidéo.');
       return;
+    }
+
+    /*
+      La vidéo se vérifie ici, avant d'envoyer huit mégaoctets pour rien. La
+      base refait les mêmes contrôles et a le dernier mot.
+    */
+    var dureeVideo = null;
+    if (fichierVideo) {
+      if (fichierVideo.type !== 'video/mp4') {
+        poserEtat('etatAnnonces', 'critique', 'Vidéo refusée : seul le format MP4 est accepté.');
+        return;
+      }
+      if (fichierVideo.size > 8388608) {
+        poserEtat('etatAnnonces', 'critique', 'Vidéo trop lourde : ' + octets(fichierVideo.size) +
+          ' pour 8 Mo au plus. Envoie-la-toi sur WhatsApp puis enregistre celle que tu reçois : WhatsApp la compresse.');
+        return;
+      }
+      try {
+        dureeVideo = await dureeDeLaVideo(fichierVideo);
+      } catch (err) {
+        poserEtat('etatAnnonces', 'critique', err.message);
+        return;
+      }
+      if (!isFinite(dureeVideo) || dureeVideo > 30.5) {
+        poserEtat('etatAnnonces', 'critique', 'Vidéo trop longue : ' + Math.round(dureeVideo) +
+          ' s pour 30 s au plus. Coupe-la avant de l\'envoyer.');
+        return;
+      }
     }
 
     bouton.disabled = true;
@@ -2696,6 +2785,20 @@
         ratio = reduite.ratio;
       }
 
+      var cheminVideo = f.dataset.video || null;
+      var secondes = f.dataset.videoDuree ? Number(f.dataset.videoDuree) : null;
+      if (fichierVideo) {
+        poserEtat('etatAnnonces', 'calme', 'Envoi de la vidéo (' + octets(fichierVideo.size) + ')…');
+        var nomVideo = crypto.randomUUID() + '.mp4';
+        var envoiVideo = await sb.storage.from('annonces').upload(nomVideo, fichierVideo, {
+          contentType: 'video/mp4',
+          upsert: false
+        });
+        if (envoiVideo.error) throw new Error(envoiVideo.error.message);
+        cheminVideo = nomVideo;
+        secondes = Math.min(30, Math.max(1, Math.round(dureeVideo)));
+      }
+
       var r = await sb.rpc('enregistrer_annonce', {
         p_id: f.dataset.id || null,
         p_annonceur: annonceur,
@@ -2707,7 +2810,9 @@
         p_commune: $('annCommune').value.trim() || null,
         p_debut: debut,
         p_fin: fin,
-        p_prix_fcfa: prix
+        p_prix_fcfa: prix,
+        p_video_chemin: cheminVideo,
+        p_video_duree_s: cheminVideo ? secondes : null
       });
       if (r.error) throw new Error(r.error.message);
 
@@ -2728,7 +2833,7 @@
     } catch (cause) {
       var m = String(cause && cause.message || cause);
       poserEtat('etatAnnonces', 'critique',
-        m.toLowerCase().indexOf('image introuvable') !== -1 ? m : expliquerErreur(m));
+        /^(Image|Vidéo) /.test(m) ? m : expliquerErreur(m));
     } finally {
       bouton.disabled = false;
     }
