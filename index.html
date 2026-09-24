@@ -432,6 +432,20 @@
     background: var(--carte); color: var(--texte); margin-top: 8px;
   }
 
+  /* ---- Le formulaire d'une annonce (0149) ------------------------------ */
+  .formulaire-annonce { display: grid; gap: 8px; margin-bottom: 16px; }
+  .formulaire-annonce label { font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .formulaire-annonce textarea {
+    font: inherit; width: 100%; padding: 10px 12px; min-height: 70px; resize: vertical;
+    border: 1px solid var(--trait); border-radius: 10px;
+    background: var(--carte); color: var(--texte);
+  }
+  .formulaire-annonce input:focus-visible,
+  .formulaire-annonce textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .deux-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .deux-champs label { display: block; margin-bottom: 6px; }
+  .chiffres-annonce { font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+
   /* ---- Le détail dépliable d'un plantage ------------------------------ */
   .fiche summary { cursor: pointer; font-size: 13px; color: var(--doux); margin-top: 8px; }
   .fiche pre {
@@ -645,11 +659,13 @@
   <nav class="onglets" id="onglets">
     <button type="button" class="onglet actif" data-onglet="ensemble">Vue d'ensemble</button>
     <button type="button" class="onglet" data-onglet="signalements">Signalements</button>
+    <button type="button" class="onglet" data-onglet="messages">Messages</button>
     <button type="button" class="onglet" data-onglet="bannis">Bannis</button>
     <button type="button" class="onglet" data-onglet="badges">Badges</button>
     <button type="button" class="onglet" data-onglet="suspects">Profils suspects</button>
     <button type="button" class="onglet" data-onglet="plantages">Plantages</button>
     <button type="button" class="onglet" data-onglet="fichiers">Fichiers</button>
+    <button type="button" class="onglet" data-onglet="annonces">Annonces</button>
   </nav>
 
   <div class="panneau" data-panneau="ensemble">
@@ -682,6 +698,29 @@
     vrai, et la purge des comptes inactifs écarte les bannis. C'est pour ça
     que la liste les met en tête.
   -->
+  <!--
+    🔴 **Ce que les inscrits écrivent, et pourquoi cet onglet doit exister**
+    *(0139, 21 septembre 2026)*. Le canal a été ouvert dans les réglages de
+    l'application ; sans écran pour le relever, ce serait une boîte aux lettres
+    murée — le défaut exact du bouton de nettoyage, en pire, parce qu'ici
+    quelqu'un attend une réponse.
+
+    ⚠️ C'est le seul recours d'un compte banni par erreur : la fonction qui
+    écrit ne regarde pas `is_banned`, et la fiche dit « Compte banni » pour que
+    la demande se lise avec ce qu'elle réclame.
+  -->
+  <div class="panneau" data-panneau="messages" hidden>
+    <div class="panneau-tete">
+      <select id="filtreMessages">
+        <option value="attente">À traiter</option>
+        <option value="traites">Traités</option>
+      </select>
+      <button type="button" class="sobre petit" id="actualiserMessages">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatMessages"></div>
+    <div id="listeMessages"></div>
+  </div>
+
   <div class="panneau" data-panneau="bannis" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
@@ -728,6 +767,76 @@
     </div>
     <div class="panneau-etat" id="etatFichiers"></div>
     <div id="contenuFichiers"></div>
+  </div>
+
+  <!--
+    Les annonces sponsorisées (0149, 24 septembre 2026). Vendues directement à
+    des commerces, au forfait par semaine et par ville. Le détail et les
+    interdits : docs/annonces-sponsorisees.md.
+  -->
+  <div class="panneau" data-panneau="annonces" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="nouvelleAnnonce">Nouvelle annonce</button>
+      <button type="button" class="sobre petit" id="actualiserAnnonces">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatAnnonces"></div>
+
+    <form class="carte formulaire-annonce" id="formAnnonce" hidden novalidate>
+      <h2 id="formAnnonceTitre">Nouvelle annonce</h2>
+      <p class="discret">
+        « Sponsorisé » s'affiche d'office. L'annonce vise une ville, ou une
+        commune, et rien d'autre. Elle reste en brouillon tant que tu ne l'as
+        pas mise en ligne, et elle ne s'affiche ni au VIP ni au Premium, ni
+        dans un fil de moins de dix publications.
+      </p>
+
+      <label for="annAnnonceur">Nom du commerce</label>
+      <input id="annAnnonceur" maxlength="60" required>
+
+      <label for="annTexte">Texte <span class="discret">(220 signes au plus)</span></label>
+      <textarea id="annTexte" maxlength="220" rows="3" required></textarea>
+
+      <label for="annLien">Lien <span class="discret">(facultatif)</span></label>
+      <input id="annLien" inputmode="url" placeholder="https://wa.me/2250700000000 ou tel:+2250700000000">
+
+      <div class="deux-champs">
+        <div>
+          <label for="annVille">Ville</label>
+          <input id="annVille" list="villesConnues" maxlength="80" required>
+        </div>
+        <div>
+          <label for="annCommune">Commune <span class="discret">(vide : toute la ville)</span></label>
+          <input id="annCommune" maxlength="80">
+        </div>
+      </div>
+
+      <div class="deux-champs">
+        <div>
+          <label for="annDebut">Du</label>
+          <input id="annDebut" type="date" required>
+        </div>
+        <div>
+          <label for="annFin">Au <span class="discret">(inclus)</span></label>
+          <input id="annFin" type="date" required>
+        </div>
+      </div>
+
+      <label for="annImage">Image</label>
+      <input id="annImage" type="file" accept="image/jpeg,image/png,image/webp">
+      <p class="discret" id="annImageNote">
+        Réduite à 900 pixels de large avant l'envoi. Une image plus haute que
+        large de plus d'un quart sera recadrée dans le fil.
+      </p>
+
+      <div class="fiche-actions">
+        <button type="submit" id="annEnregistrer">Enregistrer en brouillon</button>
+        <button type="button" class="sobre" id="annAnnuler">Annuler</button>
+      </div>
+    </form>
+
+    <datalist id="villesConnues"></datalist>
+    <div id="listeAnnonces"></div>
   </div>
 </main>
 
@@ -1210,7 +1319,24 @@
 
       { n: s.fichiers_restants, rang: 30, etat: 'alerte',
         quoi: accord(s.fichiers_restants, 'fichier à effacer', 'fichiers à effacer'),
-        onglet: 'fichiers', nom: 'fichiers' }
+        onglet: 'fichiers', nom: 'fichiers' },
+
+      /*
+        🔴 **Les messages des inscrits passent devant les fichiers et les
+        plantages** *(0139, 21 septembre 2026)*, à 90 : derrière les
+        signalements et les images, mais devant tout le reste. C'est la seule
+        file où **quelqu'un attend une réponse** — un plantage patiente, un
+        fichier ne sait pas qu'il existe.
+
+        ⚠️ **Et ce compte ne vient pas de `tableau_sante`.** L'y ajouter aurait
+        demandé de recréer la fonction dont dépend toute la page pour une
+        colonne ; la vue d'ensemble fait donc un cinquième appel, à
+        `messages_des_inscrits`. Un aller-retour de plus contre une signature
+        qu'on ne touche pas : c'est le bon côté du marché.
+      */
+      { n: s.messages_en_attente, rang: 90, etat: 'alerte',
+        quoi: accord(s.messages_en_attente, 'message reçu', 'messages reçus'),
+        onglet: 'messages', nom: 'messages' }
     ];
   }
 
@@ -1809,6 +1935,95 @@
   });
 
   /* ---------------------------------------------------------------------
+     Onglet — Messages des inscrits
+     --------------------------------------------------------------------- */
+  function ficheMessage(l) {
+    var quand = new Date(l.cree_le);
+    var date = isNaN(quand.getTime())
+      ? ''
+      : quand.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) +
+        ' à ' + quand.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete">' +
+        '<span class="etiquette">' + ech(l.nom || 'Compte sans nom') + '</span>' +
+        (l.banni ? '<span class="pastille-attention">Compte banni</span>' : '') +
+        '<span class="discret">' + ech(date) + '</span>' +
+      '</div>' +
+      '<p class="fiche-contenu">' + ech(l.texte) + '</p>' +
+      '<div class="fiche-actions">' +
+        '<button type="button" class="sobre" data-action="ecrire" ' +
+          'data-profil="' + l.auteur + '" ' +
+          'data-nom="' + ech(l.nom || 'cette personne') + '">Répondre</button>' +
+        (l.traite
+          ? '<button type="button" data-action="rouvrir" data-id="' + l.id + '">Rouvrir</button>'
+          : '<button type="button" data-action="classer" data-id="' + l.id + '">Marquer traité</button>') +
+      '</div></div>';
+  }
+
+  async function chargerMessages() {
+    $('actualiserMessages').disabled = true;
+    var liste = $('listeMessages');
+    try {
+      var r = await sb.rpc('messages_des_inscrits', {
+        p_traite: $('filtreMessages').value === 'traites',
+        p_limite: 50,
+      });
+      if (r.error) {
+        poserEtat('etatMessages', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : r.error.message);
+        return;
+      }
+      var lignes = r.data || [];
+      liste.innerHTML = lignes.length
+        ? lignes.map(ficheMessage).join('')
+        : '<p class="fiche-vide">Aucun message dans ce statut.</p>';
+    } catch (cause) {
+      poserEtat('etatMessages', 'critique', String(cause));
+    } finally {
+      $('actualiserMessages').disabled = false;
+      chargesOnglets.messages = true;
+    }
+  }
+
+  $('listeMessages').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    var action = bouton.getAttribute('data-action');
+
+    /*
+      Répondre passe par la même fenêtre que partout ailleurs : un message de
+      modération, déposé en notification. Il n'y a pas de fil de discussion, et
+      c'est voulu — deux tables, deux sens.
+    */
+    if (action === 'ecrire') {
+      var parti = await ecrireA(
+        bouton.getAttribute('data-profil'),
+        bouton.getAttribute('data-nom'));
+      if (parti) poserEtat('etatMessages', 'calme', 'Réponse envoyée.');
+      return;
+    }
+
+    bouton.disabled = true;
+    var r = await sb.rpc('classer_message_admin', {
+      p_id: bouton.getAttribute('data-id'),
+      p_traite: action === 'classer',
+    });
+
+    if (r.error) {
+      poserEtat('etatMessages', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+
+    bouton.closest('.fiche').remove();
+    poserEtat('etatMessages', 'calme', action === 'classer' ? 'Marqué traité.' : 'Rouvert.');
+    if (!$('listeMessages').querySelector('.fiche')) {
+      $('listeMessages').innerHTML = '<p class="fiche-vide">Aucun message dans ce statut.</p>';
+    }
+  });
+
+  /* ---------------------------------------------------------------------
      Onglet — Bannis
      --------------------------------------------------------------------- */
 
@@ -2178,16 +2393,278 @@
   }
 
   /* ---------------------------------------------------------------------
+     Onglet — Annonces sponsorisées (0149)
+     ---------------------------------------------------------------------
+
+     Ce que l'onglet ne fait PAS, et pourquoi : il ne vise jamais autre chose
+     qu'une ville ou une commune. Viser par genre, âge ou personnalité
+     reviendrait à se servir de ces données pour de la publicité — ce que la
+     politique de confidentialité exclut. Les chiffres sont des totaux par jour,
+     jamais une ligne par personne : c'est tout ce que l'annonceur reçoit.
+  */
+  var annoncesChargees = [];
+
+  function aujourdhui(decalage) {
+    var d = new Date();
+    d.setUTCDate(d.getUTCDate() + (decalage || 0));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function dateCourte(iso) {
+    var d = new Date(iso + 'T00:00:00Z');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  }
+
+  /** L'état dit en mots, jamais par la seule couleur. */
+  function etatAnnonce(a) {
+    var jour = aujourdhui(0);
+    if (a.etat === 'brouillon') return '<span class="discret">Brouillon</span>';
+    if (a.etat === 'en_pause') return '<span class="pastille-attention">En pause</span>';
+    if (a.fin < jour) return '<span class="discret">Terminée</span>';
+    if (a.debut > jour) return '<span class="discret">En ligne à partir du ' + ech(dateCourte(a.debut)) + '</span>';
+    return '<span class="pastille-attention">✓ En ligne</span>';
+  }
+
+  function ficheAnnonce(a) {
+    var lieu = a.commune ? a.ville + ' · ' + a.commune : a.ville + ' · toute la ville';
+    var basculer = a.etat === 'en_ligne'
+      ? '<button type="button" class="sobre" data-action="pause" data-id="' + a.id + '">Mettre en pause</button>'
+      : '<button type="button" data-action="en_ligne" data-id="' + a.id + '">Mettre en ligne</button>';
+
+    return '<div class="carte fiche">' +
+      '<div class="fiche-tete">' +
+        '<span class="etiquette">' + ech(a.annonceur) + '</span>' + etatAnnonce(a) +
+      '</div>' +
+      '<p class="discret">' + ech(lieu) + ' · du ' + ech(dateCourte(a.debut)) +
+        ' au ' + ech(dateCourte(a.fin)) + '</p>' +
+      imgTag(a.image_chemin, 'annonces', 'fiche-image') +
+      '<div class="fiche-contenu" style="margin-top:8px">' + ech(a.texte) + '</div>' +
+      (a.lien ? '<p class="discret" style="margin-top:6px">Lien : ' + ech(a.lien) + '</p>' : '') +
+      '<p class="chiffres-annonce">' +
+        nb(a.affichages) + ' ' + ech(accord(Number(a.affichages), 'affichage', 'affichages')) + ' · ' +
+        nb(a.touches) + ' ' + ech(accord(Number(a.touches), 'touche', 'touches')) +
+        ' <span class="discret">— 7 derniers jours : ' + nb(a.affichages_7j) + ' · ' + nb(a.touches_7j) + '</span>' +
+      '</p>' +
+      '<div class="fiche-actions">' + basculer +
+        '<button type="button" class="sobre" data-action="modifier" data-id="' + a.id + '">Modifier</button>' +
+        '<button type="button" class="danger" data-action="supprimer" data-id="' + a.id + '" ' +
+          'data-nom="' + ech(a.annonceur) + '">Supprimer</button>' +
+      '</div></div>';
+  }
+
+  async function remplirVilles() {
+    if ($('villesConnues').childElementCount > 0) return;
+    var r = await sb.rpc('tableau_densite');
+    if (r.error || !r.data) return;
+    var villes = Array.from(new Set((r.data || [])
+      .map(function (l) { return l.ville; })
+      .filter(function (v) { return v && v !== '(sans ville)'; }))).sort();
+    $('villesConnues').innerHTML = villes.map(function (v) {
+      return '<option value="' + ech(v) + '"></option>';
+    }).join('');
+  }
+
+  async function chargerAnnonces() {
+    $('actualiserAnnonces').disabled = true;
+    var liste = $('listeAnnonces');
+    try {
+      var r = await sb.rpc('annonces_a_gerer');
+      if (r.error) {
+        poserEtat('etatAnnonces', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
+        return;
+      }
+      annoncesChargees = r.data || [];
+      liste.innerHTML = annoncesChargees.length
+        ? annoncesChargees.map(ficheAnnonce).join('')
+        : '<p class="fiche-vide">Aucune annonce. « Nouvelle annonce » en crée une, en brouillon.</p>';
+      await aposerImages(liste);
+    } catch (cause) {
+      poserEtat('etatAnnonces', 'critique', String(cause));
+    } finally {
+      $('actualiserAnnonces').disabled = false;
+      chargesOnglets.annonces = true;
+    }
+  }
+
+  function ouvrirFormulaire(a) {
+    var f = $('formAnnonce');
+    f.dataset.id = a ? a.id : '';
+    f.dataset.chemin = a ? a.image_chemin : '';
+    f.dataset.ratio = a ? String(a.ratio) : '';
+    $('formAnnonceTitre').textContent = a ? 'Modifier « ' + a.annonceur + ' »' : 'Nouvelle annonce';
+    $('annEnregistrer').textContent = a ? 'Enregistrer' : 'Enregistrer en brouillon';
+    $('annAnnonceur').value = a ? a.annonceur : '';
+    $('annTexte').value = a ? a.texte : '';
+    $('annLien').value = a ? (a.lien || '') : '';
+    $('annVille').value = a ? a.ville : '';
+    $('annCommune').value = a ? (a.commune || '') : '';
+    // Une semaine par défaut : c'est l'unité de vente.
+    $('annDebut').value = a ? a.debut : aujourdhui(0);
+    $('annFin').value = a ? a.fin : aujourdhui(6);
+    $('annImage').value = '';
+    f.hidden = false;
+    void remplirVilles();
+    $('annAnnonceur').focus();
+  }
+
+  function fermerFormulaire() {
+    $('formAnnonce').hidden = true;
+  }
+
+  /**
+   * L'image réduite dans le navigateur avant l'envoi : 900 pixels de large,
+   * WebP. La règle des médias réduits avant l'envoi vaut ici comme ailleurs —
+   * c'est l'entreprise qui paie le stockage et la sortie de données.
+   */
+  async function reduireImage(fichier) {
+    var bitmap = await createImageBitmap(fichier);
+    var largeur = Math.min(900, bitmap.width);
+    var hauteur = Math.round(bitmap.height * (largeur / bitmap.width));
+    var toile = document.createElement('canvas');
+    toile.width = largeur;
+    toile.height = hauteur;
+    toile.getContext('2d').drawImage(bitmap, 0, 0, largeur, hauteur);
+    var blob = await new Promise(function (ok) { toile.toBlob(ok, 'image/webp', 0.8); });
+    if (!blob) throw new Error("Le navigateur n'a pas pu préparer l'image.");
+    // Le fil borne le ratio entre 0,5 et 1,25 : au-delà, l'image est recadrée.
+    var ratio = Math.min(1.25, Math.max(0.5, hauteur / largeur));
+    return { blob: blob, ratio: Math.round(ratio * 1000) / 1000 };
+  }
+
+  $('nouvelleAnnonce').addEventListener('click', function () { ouvrirFormulaire(null); });
+  $('annAnnuler').addEventListener('click', fermerFormulaire);
+
+  $('formAnnonce').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var f = $('formAnnonce');
+    var bouton = $('annEnregistrer');
+
+    var annonceur = $('annAnnonceur').value.trim();
+    var texte = $('annTexte').value.trim();
+    var lien = $('annLien').value.trim();
+    var ville = $('annVille').value.trim();
+    var debut = $('annDebut').value;
+    var fin = $('annFin').value;
+    var fichier = $('annImage').files[0];
+
+    if (!annonceur || !texte || !ville || !debut || !fin) {
+      poserEtat('etatAnnonces', 'critique', 'Le nom, le texte, la ville et les deux dates sont obligatoires.');
+      return;
+    }
+    if (fin < debut) {
+      poserEtat('etatAnnonces', 'critique', 'La date de fin est avant la date de début.');
+      return;
+    }
+    if (lien && !/^(https:\/\/\S+|tel:\+?[0-9 ]{6,20})$/.test(lien)) {
+      poserEtat('etatAnnonces', 'critique', 'Le lien doit commencer par https:// ou tel:.');
+      return;
+    }
+    if (!fichier && !f.dataset.chemin) {
+      poserEtat('etatAnnonces', 'critique', 'Choisis une image.');
+      return;
+    }
+
+    bouton.disabled = true;
+    try {
+      var chemin = f.dataset.chemin;
+      var ratio = Number(f.dataset.ratio) || 1;
+
+      if (fichier) {
+        var reduite = await reduireImage(fichier);
+        /*
+          Un nom neuf à chaque dépôt, et jamais de remplacement (0143) :
+          l'ancienne image part par la file d'effacement quand l'annonce
+          change d'image.
+        */
+        var neuf = crypto.randomUUID() + '.webp';
+        var envoi = await sb.storage.from('annonces').upload(neuf, reduite.blob, {
+          contentType: 'image/webp',
+          upsert: false
+        });
+        if (envoi.error) throw new Error(envoi.error.message);
+        chemin = neuf;
+        ratio = reduite.ratio;
+      }
+
+      var r = await sb.rpc('enregistrer_annonce', {
+        p_id: f.dataset.id || null,
+        p_annonceur: annonceur,
+        p_texte: texte,
+        p_lien: lien || null,
+        p_image_chemin: chemin,
+        p_ratio: ratio,
+        p_ville: ville,
+        p_commune: $('annCommune').value.trim() || null,
+        p_debut: debut,
+        p_fin: fin
+      });
+      if (r.error) throw new Error(r.error.message);
+
+      fermerFormulaire();
+      poserEtat('etatAnnonces', 'calme', f.dataset.id ? 'Annonce enregistrée.' : 'Annonce enregistrée en brouillon.');
+      await chargerAnnonces();
+    } catch (cause) {
+      var m = String(cause && cause.message || cause);
+      poserEtat('etatAnnonces', 'critique',
+        m.toLowerCase().indexOf('image introuvable') !== -1 ? m : expliquerErreur(m));
+    } finally {
+      bouton.disabled = false;
+    }
+  });
+
+  $('listeAnnonces').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    var id = bouton.getAttribute('data-id');
+    var action = bouton.getAttribute('data-action');
+
+    if (action === 'modifier') {
+      var a = annoncesChargees.find(function (x) { return x.id === id; });
+      if (a) { ouvrirFormulaire(a); window.scrollTo(0, 0); }
+      return;
+    }
+
+    if (action === 'supprimer') {
+      var ok = await confirmer('Supprimer cette annonce ?',
+        bouton.getAttribute('data-nom') + ' disparaît du fil, avec ses chiffres. ' +
+        "Son image part à l'effacement cette nuit. Pour l'arrêter sans rien perdre, " +
+        'mets-la plutôt en pause.',
+        'Supprimer', false);
+      if (!ok) return;
+    }
+
+    bouton.disabled = true;
+    var r = action === 'supprimer'
+      ? await sb.rpc('supprimer_annonce', { p_id: id })
+      : await sb.rpc('changer_etat_annonce', { p_id: id, p_etat: action === 'pause' ? 'en_pause' : 'en_ligne' });
+
+    if (r.error) {
+      poserEtat('etatAnnonces', 'critique', expliquerErreur(r.error.message));
+      bouton.disabled = false;
+      return;
+    }
+
+    poserEtat('etatAnnonces', 'calme',
+      action === 'supprimer' ? 'Annonce supprimée.'
+        : action === 'pause' ? 'Annonce en pause.' : 'Annonce en ligne.');
+    await chargerAnnonces();
+  });
+
+  /* ---------------------------------------------------------------------
      Les onglets — bascule et chargement paresseux
      --------------------------------------------------------------------- */
   var chargesOnglets = {};
   var CHARGEURS_ONGLET = {
     signalements: chargerSignalements,
+    messages: chargerMessages,
     bannis: chargerBannis,
     badges: chargerBadges,
     suspects: chargerSuspects,
     plantages: chargerPlantages,
-    fichiers: chargerFichiers
+    fichiers: chargerFichiers,
+    annonces: chargerAnnonces
   };
 
   function reinitialiserOnglets() {
@@ -2213,12 +2690,15 @@
 
   $('actualiserSignalements').addEventListener('click', chargerSignalements);
   $('filtreSignalements').addEventListener('change', chargerSignalements);
+  $('actualiserMessages').addEventListener('click', chargerMessages);
+  $('filtreMessages').addEventListener('change', chargerMessages);
   $('actualiserBannis').addEventListener('click', chargerBannis);
   $('actualiserBadges').addEventListener('click', chargerBadges);
   $('actualiserSuspects').addEventListener('click', chargerSuspects);
   $('actualiserPlantages').addEventListener('click', chargerPlantages);
   $('filtrePlantages').addEventListener('change', chargerPlantages);
   $('actualiserFichiers').addEventListener('click', chargerFichiers);
+  $('actualiserAnnonces').addEventListener('click', chargerAnnonces);
 
   /*
     Un raccourci de la vue d'ensemble vers l'onglet qui porte la file.
@@ -2250,7 +2730,15 @@
         sb.rpc('tableau_sante'),
         sb.rpc('tableau_usage'),
         sb.rpc('tableau_densite'),
-        sb.rpc('tableau_argent')
+        sb.rpc('tableau_argent'),
+        /*
+          Le cinquième appel, ajouté avec `0139`. Il ne rend pas un compteur
+          mais la liste : on en lit la longueur. La borne de 200 de la fonction
+          est donc aussi celle du chiffre affiché — au-delà, il dirait « 200 »
+          en restant vrai sur le seul point qui compte, à savoir qu'il y en a
+          beaucoup trop.
+        */
+        sb.rpc('messages_des_inscrits', { p_traite: false, p_limite: 200 })
       ]);
 
       var enPanne = r.find(function (x) { return x.error; });
@@ -2263,8 +2751,17 @@
         return;
       }
 
+      /*
+        Le compte des messages rejoint la santé plutôt que de vivre à côté :
+        `filesDeTravail` lit un seul objet, et lui passer deux sources aurait
+        fait deux endroits à tenir à jour.
+      */
+      var sante = Object.assign({}, r[0].data[0], {
+        messages_en_attente: (r[4].data || []).length,
+      });
+
       $('contenu').innerHTML =
-        blocSante(r[0].data[0]) +
+        blocSante(sante) +
         blocUsage(r[1].data[0]) +
         blocDensite(r[2].data) +
         blocArgent(r[3].data[0]);
