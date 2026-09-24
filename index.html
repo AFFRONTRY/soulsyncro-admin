@@ -7,6 +7,28 @@
 <title>Tableau de Bord- SoulSyncro</title>
 
 <!--
+  🔴 Jamais dans le cadre d'un autre site (audit du 24 septembre 2026).
+
+  Un site piégé pouvait charger cette page dans un cadre invisible, par-dessus
+  un bouton anodin : un modérateur connecté croyait cliquer chez lui et
+  cliquait « Bannir » ici. L'en-tête qui l'interdit (`frame-ancestors`) ne
+  s'envoie pas depuis GitHub Pages, et une balise `<meta>` ne peut pas le
+  porter. D'où ce garde : la page naît cachée, et ne se montre que si elle
+  est seule dans sa fenêtre.
+
+  ⚠️ Il passe AVANT toute autre feuille de style et tout autre script : placé
+  plus bas, la page aurait le temps de s'afficher dans le cadre.
+-->
+<style id="horsCadre">html { display: none !important; }</style>
+<script>
+  if (window.self === window.top) {
+    document.getElementById('horsCadre').remove();
+  } else {
+    try { window.top.location = window.self.location.href; } catch (e) { /* le cadre refuse : la page reste cachée */ }
+  }
+</script>
+
+<!--
   ---------------------------------------------------------------------------
   Le tableau de bord d'exploitation.
   ---------------------------------------------------------------------------
@@ -535,6 +557,27 @@
     .sonde .barres { grid-column: 1 / -1; grid-row: 2; }
     .sonde .chiffre.latence { display: none; }
     .fiche-image, .fiche-image-vide { max-width: 100%; width: 140px; }
+
+    /* Les charges, sur deux lignes par poste (audit du 24 septembre 2026) :
+       à cinq colonnes, le montant sortait de l'écran et ne se lisait qu'en
+       faisant défiler le tableau de côté — total compris. */
+    table.charges thead { display: none; }
+    table.charges tr {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-areas: "poste poste retirer" "prix volume montant";
+      align-items: center; gap: 4px 10px; padding: 6px 0;
+      border-bottom: 1px solid var(--trait);
+    }
+    table.charges td { border: 0; padding: 0; }
+    table.charges td:nth-child(1) { grid-area: poste; }
+    table.charges td:nth-child(2) { grid-area: prix; justify-self: start; text-align: left; }
+    table.charges td:nth-child(3) { grid-area: volume; }
+    table.charges td:nth-child(4) { grid-area: montant; }
+    table.charges td:nth-child(5) { grid-area: retirer; }
+    table.charges td:empty { display: none; }
+    table.charges input.poste { min-width: 0; width: 100%; }
+    table.charges tr.total { border-top: 2px solid var(--trait); border-bottom: 0; }
+    table.charges tr.total td { border: 0; }
   }
 </style>
 
@@ -1875,7 +1918,7 @@
       });
       if (r.error) {
         poserEtat('etatSignalements', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2009,7 +2052,7 @@
       });
       if (r.error) {
         poserEtat('etatMessages', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2106,7 +2149,7 @@
       var r = await sb.rpc('bannis_a_regarder', { p_limite: 50 });
       if (r.error) {
         poserEtat('etatBannis', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2183,7 +2226,7 @@
       var r = await sb.rpc('file_verifications', { p_limite: 30 });
       if (r.error) {
         poserEtat('etatBadges', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2254,7 +2297,7 @@
       var r = await sb.rpc('profils_a_regarder', { p_limite: 30 });
       if (r.error) {
         poserEtat('etatSuspects', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2347,7 +2390,7 @@
       var r = await sb.rpc('plantages_a_regarder', { p_traite: $('filtrePlantages').value === 'classes' });
       if (r.error) {
         poserEtat('etatPlantages', 'critique', r.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : r.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
         return;
       }
       var lignes = r.data || [];
@@ -2391,7 +2434,7 @@
       var enPanne = r.find(function (x) { return x.error; });
       if (enPanne) {
         poserEtat('etatFichiers', 'critique', enPanne.error.code === '42501'
-          ? "Ce compte n'est pas modérateur." : enPanne.error.message);
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(enPanne.error.message));
         return;
       }
       $('contenuFichiers').innerHTML =
@@ -3106,7 +3149,7 @@
     lignesCharges.push('<tr><td>Commissions d\'encaissement<span class="secondaire">relevées sur chaque paiement</span></td><td></td><td></td><td class="n">' +
       fcfa(c.commissions) + '</td><td></td></tr>');
     html += '<div class="p6"><div class="carte"><h3>Charges du mois <span class="note-titre">Les prix se modifient ici</span></h3>' +
-      '<div class="cadre"><table><thead><tr><th>Poste</th><th class="n">Prix</th><th class="n">Volume</th><th class="n">Montant</th><th></th></tr></thead><tbody>' +
+      '<div class="cadre"><table class="charges"><thead><tr><th>Poste</th><th class="n">Prix</th><th class="n">Volume</th><th class="n">Montant</th><th></th></tr></thead><tbody>' +
       lignesCharges.join('') + '<tr class="total"><td>Total</td><td></td><td></td><td class="n">' + fcfa(charges) + '</td><td></td></tr></tbody></table></div>' +
       '<form class="formulaire-charge" id="formCharge">' +
         '<label for="chPoste">Nouvelle charge<input id="chPoste" maxlength="80" placeholder="Ex. : loyer du bureau"></label>' +
@@ -3532,9 +3575,9 @@
       var enPanne = r.slice(0, 6).find(function (x) { return x.error; });
       if (enPanne) {
         if (enPanne.error.code === '42501') {
-          montrer('Accès refusé', "Ce compte n'est pas modérateur (is_admin).");
+          montrer('Accès refusé', "Ce compte n'est pas modérateur.");
         } else {
-          montrer('Lecture impossible', enPanne.error.message);
+          montrer('Lecture impossible', expliquerErreur(enPanne.error.message));
         }
         return;
       }
