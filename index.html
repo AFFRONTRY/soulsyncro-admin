@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>SoulSyncro — tableau de bord</title>
+<title>Tableau de Bord- SoulSyncro</title>
 
 <!--
   ---------------------------------------------------------------------------
@@ -12,6 +12,13 @@
   ---------------------------------------------------------------------------
 
   Page unique, sans étape de compilation, servie telle quelle par GitHub Pages.
+
+  🔴 **Refondue le 24 septembre 2026, sur maquette validée par l'exploitant** :
+  barre latérale groupée, panneaux en grille, deux pages neuves — « Coûts et
+  bénéfice » et « Serveurs » (0151). Le code de chaque onglet de modération
+  n'a pas changé : seul son habillage a été refait. Les polices voyagent dans
+  `vendor/polices/`, comme la bibliothèque — rien ne vient d'un site tiers,
+  à l'exception du défi anti-robot, qui ne peut pas être recopié.
 
   ⚠️ CETTE PAGE EST PUBLIQUE, LES DONNÉES NE LE SONT PAS.
 
@@ -93,459 +100,442 @@
 -->
 
 <style>
+  /*
+    ---------------------------------------------------------------------------
+    La refonte du 24 septembre 2026 — maquette validée par l'exploitant
+    ---------------------------------------------------------------------------
+
+    Une barre latérale groupée (Pilotage, Modération, Technique, Commerce), des
+    panneaux en grille, des courbes dessinées par la page elle-même. Inspirée de
+    Metabase pour les tuiles, de Grafana pour les panneaux à période, d'Uptime
+    Kuma pour les barres de disponibilité.
+
+    ⚠️ Les tailles de police ont été RÉDUITES DE 20 % à la demande de
+    l'exploitant, pour raccourcir les longues listes — avec un plancher de
+    11 px, sous lequel une légende devient illisible sur téléphone.
+
+    ⚠️ Les polices voyagent avec la page (`vendor/polices/`), comme la
+    bibliothèque : aucune ne vient d'un site tiers. Ce sont celles de
+    l'application — Fraunces pour le logo et les titres, Cabin pour le reste.
+
+    Les couleurs sont celles d'avant, mesurées : chaque statut tient au-dessus
+    de 4,5:1 sur son fond réel, dans les deux thèmes.
+  */
+  @font-face { font-family: "Cabin"; font-weight: 400; font-display: swap; src: url("vendor/polices/Cabin_400Regular.ttf") format("truetype"); }
+  @font-face { font-family: "Cabin"; font-weight: 500; font-display: swap; src: url("vendor/polices/Cabin_500Medium.ttf") format("truetype"); }
+  @font-face { font-family: "Cabin"; font-weight: 600; font-display: swap; src: url("vendor/polices/Cabin_600SemiBold.ttf") format("truetype"); }
+  @font-face { font-family: "Cabin"; font-weight: 700; font-display: swap; src: url("vendor/polices/Cabin_700Bold.ttf") format("truetype"); }
+  @font-face { font-family: "Fraunces"; font-weight: 700; font-display: swap; src: url("vendor/polices/Fraunces_700Bold.ttf") format("truetype"); }
+
   :root {
+    color-scheme: light;
     --fond: #FDF7F0;
+    --lateral: #F5EADF;
     --carte: #FFFFFF;
+    --creux: #FAF3EB;
     --trait: #E8DDD2;
     --texte: #2B1D14;
     --doux: #7A6558;
-
-    /* Rampe unique pour les jauges : le remplissage et sa piste. */
+    --pale: #A8948A;
     --accent: #B7410E;
+    --accent-2: #2F6F6A;
     --piste: #F5DDD2;
-
-    /*
-      ⚠️ L'encre posée SUR l'accent, mesurée contre l'accent de chaque thème.
-
-      Le blanc ne convient qu'au thème clair. Sur l'accent du thème sombre
-      (`#E8724A`, plus lumineux), il tombe à **3,03:1** — sous les 4,5 exigés
-      d'un texte. Le jeton bascule donc avec le thème, au lieu d'être écrit
-      en dur dans la règle du bouton, ce qui était le cas jusqu'au
-      27 août 2026 : tous les boutons de cette page ont porté ce défaut
-      depuis leur première version.
-    */
     --surAccent: #FFFFFF;     /* 5,56:1 sur #B7410E */
-    --surCritique: #FFFFFF;   /* 5,44:1 sur #C0392B */
-
-    /* Statuts — mesurés sur #FFFFFF, tous au-dessus de 4,5:1. */
-    --critique: #C0392B;   /* 5,44:1 */
-    --alerte:   #8F5A0E;   /* 5,77:1 */
-    --calme:    #15703B;   /* 6,15:1 */
+    --surCritique: #FFFFFF;
+    --critique: #C0392B;      /* 5,44:1 */
+    --alerte: #8F5A0E;        /* 5,77:1 */
+    --calme: #15703B;         /* 6,15:1 */
+    --fond-critique: #FBE4E0;
+    --fond-alerte: #F8ECD6;
+    --fond-calme: #DDF1E4;
+    --ombre: 0 1px 2px rgba(43, 29, 20, .06), 0 4px 14px rgba(43, 29, 20, .05);
   }
-
   @media (prefers-color-scheme: dark) {
     :root {
+      color-scheme: dark;
       --fond: #17110D;
+      --lateral: #120D0A;
       --carte: #221913;
+      --creux: #1C1510;
       --trait: #3A2C22;
       --texte: #F5EBE2;
       --doux: #B09C8E;
-
+      --pale: #85736A;
       --accent: #E8724A;
+      --accent-2: #6FC2BA;
       --piste: #4A2C1E;
-      --surAccent: #17110D;     /* 6,18:1 sur #E8724A — le blanc n'y vaudrait que 3,03 */
-      --surCritique: #17110D;   /* 6,16:1 sur #E8705F — le blanc n'y vaudrait que 3,04 */
-
-      /* Mesurés sur #221913. */
-      --critique: #E8705F;   /* 5,68:1 */
-      --alerte:   #E0A94A;   /* 8,17:1 */
-      --calme:    #5FBF86;   /* 7,63:1 */
+      --surAccent: #17110D;   /* 6,18:1 sur #E8724A — le blanc n'y vaudrait que 3,03 */
+      --surCritique: #17110D;
+      --critique: #E8705F;    /* 5,68:1 sur #221913 */
+      --alerte: #E0A94A;      /* 8,17:1 */
+      --calme: #5FBF86;       /* 7,63:1 */
+      --fond-critique: #3A1D18;
+      --fond-alerte: #36281A;
+      --fond-calme: #17301F;
+      --ombre: 0 1px 2px rgba(0, 0, 0, .3);
     }
   }
 
   * { box-sizing: border-box; }
-
+  html, body { height: 100%; }
   body {
     margin: 0;
-    padding: 14px;
     background: var(--fond);
     color: var(--texte);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 12px/1.5 "Cabin", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  h1, h2, h3 { text-wrap: balance; }
+  code { font-size: 11px; }
+  a { color: var(--accent); }
 
-  /*
-    🔴 Une colonne, pas toute la largeur de l'écran.
-
-    Sans cette borne, à 1280 px chaque phrase courait sur 1 250 points — trois
-    fois la longueur de ligne qu'un œil suit sans se perdre — et dans le
-    tableau de densité le nombre d'actifs se retrouvait à 1 200 points de son
-    libellé, donc illisible d'un bout à l'autre. Le tableau de bord ne gagne
-    rien à s'étaler : il gagne à se lire.
-  */
-  main { max-width: 880px; margin: 0 auto; }
-
-  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
-  h1 { font-size: 19px; margin: 0; font-weight: 700; }
-  h2 {
-    font-size: 12px; margin: 0 0 14px; font-weight: 700;
-    letter-spacing: .06em; text-transform: uppercase; color: var(--doux);
-  }
-  .grandit { flex: 1; }
-  .discret { color: var(--doux); font-size: 13px; }
-
+  /* ---- Boutons et champs ------------------------------------------- */
   button {
-    font: inherit; font-weight: 600; cursor: pointer;
-    padding: 9px 16px; min-height: 44px;
-    border: none; border-radius: 10px;
+    font-weight: 600; cursor: pointer; font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 34px; padding: 6px 13px;
+    border: 1px solid transparent; border-radius: 9px;
     background: var(--accent); color: var(--surAccent);
   }
   button:disabled { opacity: .5; cursor: default; }
-  button.sobre { background: transparent; color: var(--doux); border: 1px solid var(--trait); }
-
-  input {
-    font: inherit; width: 100%; padding: 12px 14px; min-height: 44px;
-    border: 1px solid var(--trait); border-radius: 10px;
-    background: var(--carte); color: var(--texte);
+  button.sobre { background: transparent; color: var(--texte); border-color: var(--trait); }
+  button.sobre:hover:not(:disabled) { background: var(--creux); }
+  /*
+    ⚠️ Le geste destructeur se distingue par la FORME, jamais par la teinte :
+    `--accent` et `--critique` ne sont séparés que de 1,00:1 en sombre.
+  */
+  button.danger { background: transparent; color: var(--critique); border-color: var(--critique); }
+  button.petit { min-height: 30px; padding: 4px 10px; }
+  input, select, textarea {
+    width: 100%; min-height: 36px; padding: 7px 11px;
+    border: 1px solid var(--trait); border-radius: 9px; background: var(--creux);
   }
+  select { width: auto; background: var(--carte); }
+
+  /* ---- La charpente : barre latérale + contenu ---------------------- */
+  .charpente { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100%; }
+  .charpente[hidden] { display: none; }
+  .lateral {
+    background: var(--lateral); border-right: 1px solid var(--trait);
+    padding: 16px 10px 20px; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+  }
+  .marque { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; padding: 0 10px; }
+  .marque b { font: 700 18px/1 "Fraunces", Georgia, serif; }
+  .marque b + b { color: var(--accent); }
+  .marque small { width: 100%; margin-top: 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--doux); }
+  #navigation { display: grid; gap: 14px; }
+  .groupe h2 {
+    margin: 0 0 3px; padding: 0 10px; font-size: 11px; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--pale);
+  }
+  .groupe ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+  .onglet {
+    width: 100%; justify-content: flex-start; gap: 9px; min-height: 30px;
+    padding: 5px 10px; border: 0; border-radius: 8px; background: transparent;
+    text-align: left; font-weight: 500; font-size: 12px; color: var(--texte);
+  }
+  .onglet:hover { background: var(--creux); }
+  .onglet.actif { background: var(--carte); box-shadow: var(--ombre); font-weight: 600; }
+  .onglet.actif .ico { color: var(--accent); }
+  .ico { width: 15px; height: 15px; flex: none; color: var(--doux); }
+  .onglet .compte {
+    margin-left: auto; min-width: 20px; padding: 1px 6px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; text-align: center;
+    background: var(--fond-critique); color: var(--critique);
+  }
+  .onglet .compte[hidden] { display: none; }
+  .lateral .pied { margin-top: auto; padding: 0 10px; display: grid; gap: 8px; font-size: 11px; color: var(--doux); }
+
+  .contenu { min-width: 0; padding-inline: 24px; padding-block: 0 40px; }
+  .tete {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding-block: 13px 11px; background: var(--fond); border-bottom: 1px solid var(--trait);
+    margin-bottom: 16px;
+  }
+  .tete h1 { margin: 0; font: 700 19px/1.2 "Fraunces", Georgia, serif; }
+  .tete .sous { width: 100%; margin: -5px 0 0; font-size: 11px; color: var(--doux); }
+  .tete .outils { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tete .menu { display: none; }
+
+  .periodes { display: inline-flex; padding: 3px; gap: 2px; background: var(--creux); border: 1px solid var(--trait); border-radius: 9px; }
+  .periodes[hidden] { display: none; }
+  .periodes button {
+    min-height: 26px; border: 0; background: transparent; padding: 3px 10px; border-radius: 7px;
+    font-size: 11px; font-weight: 600; color: var(--doux); font-variant-numeric: tabular-nums;
+  }
+  .periodes button[aria-pressed="true"] { background: var(--carte); color: var(--texte); box-shadow: var(--ombre); }
+
+  /* ---- La grille, les panneaux --------------------------------------- */
+  .grille { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 13px; align-items: start; }
+  .p12 { grid-column: span 12; } .p8 { grid-column: span 8; } .p6 { grid-column: span 6; }
+  .p4 { grid-column: span 4; } .p3 { grid-column: span 3; }
+  .grille > div > .carte:last-child { margin-bottom: 0; }
 
   .carte {
-    background: var(--carte);
-    border: 1px solid var(--trait);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 14px;
+    background: var(--carte); border: 1px solid var(--trait); border-radius: 12px;
+    padding: 13px 15px; min-width: 0; box-shadow: var(--ombre); margin-bottom: 13px;
+  }
+  .carte > h3, .carte > h2:not(.question) {
+    margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--doux);
+  }
+  .carte .note-titre { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11px; color: var(--pale); }
+  h2.question { margin: 0 0 4px; font: 700 15px/1.3 "Fraunces", Georgia, serif; }
+  .reponse { margin: 0 0 10px; }
+  .reponse strong { font-weight: 700; }
+  .grandit { flex: 1; }
+  .discret { color: var(--doux); font-size: 11px; }
+  .note {
+    margin: 10px 0 0; padding: 8px 11px; border-left: 3px solid var(--trait);
+    background: var(--creux); border-radius: 0 8px 8px 0; font-size: 11px; color: var(--doux);
+  }
+  .note strong { color: var(--texte); }
+
+  /* Verdicts et pastilles : un signe ET un mot, jamais la couleur seule. */
+  .verdict, .etat {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .verdict .signe { font-size: 10px; }
+  .v-critique, .etat.critique { background: var(--fond-critique); color: var(--critique); }
+  .v-alerte, .etat.alerte { background: var(--fond-alerte); color: var(--alerte); }
+  .v-calme, .etat.calme { background: var(--fond-calme); color: var(--calme); }
+  .etat.neutre { background: var(--creux); color: var(--doux); }
+  .pastille-attention {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--fond-alerte); color: var(--alerte);
   }
 
-  /* ---- Une question, puis sa reponse en une phrase -------------------- */
-  /*
-    ⚠️ Un titre de la vue d'ensemble est une QUESTION, pas une étiquette.
-
-    Il porte donc la taille d'un titre, jamais les capitales espacées de `h2`,
-    qui servent à nommer un champ — on ne pose pas une question en petites
-    capitales. La réponse tient dessous en une phrase, **avant** tout chiffre :
-    ce tableau se lit debout, le téléphone à la main, et ce qu'on n'a pas lu
-    en dix secondes, on ne le lira pas.
-  */
-  h2.question {
-    font-size: 17px; margin: 0 0 5px; font-weight: 700;
-    letter-spacing: normal; text-transform: none; color: var(--texte);
-    text-wrap: balance;
+  /* Tuiles, façon Metabase : un nom, un chiffre, une tendance. */
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .tuile { display: flex; flex-direction: column; gap: 1px; }
+  .tuiles .tuile { background: var(--creux); border-radius: 9px; padding: 9px 11px; }
+  .tuile .nom { font-size: 11px; color: var(--doux); font-weight: 500; }
+  .tuile .valeur { font-size: 24px; line-height: 1.15; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .tuiles .tuile .valeur { font-size: 19px; order: -1; }
+  .tuile .valeur small { font-size: 12px; font-weight: 600; color: var(--doux); margin-left: 3px; }
+  .tuile .tendance { font-size: 11px; color: var(--doux); }
+  .tuile .tendance b { color: var(--calme); }
+  .tuile .tendance b.bas { color: var(--critique); }
+  .tuile .verdict, .tuile .etat { align-self: flex-start; margin-top: 4px; }
+  .etiquette-neuve {
+    align-self: flex-start; margin-top: 5px; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--accent); background: var(--piste); padding: 1px 7px; border-radius: 999px;
   }
-  .reponse { margin: 0 0 14px; font-size: 14px; line-height: 1.45; color: var(--doux); }
-  .reponse strong { color: var(--texte); font-weight: 700; }
+  .heros .valeur { font: 700 42px/1 "Fraunces", Georgia, serif; font-variant-numeric: lining-nums; }
+  .heros .valeur small { font: 600 16px/1 "Cabin", sans-serif; color: var(--doux); margin-left: 4px; }
 
-  /* ---- Le detail : replie, jamais retire ----------------------------- */
-  /*
-    ⚠️ Un chiffre replié reste un chiffre affiché.
-
-    Neuf compteurs alignés dont six à zéro enterrent les trois qui parlent ;
-    les effacer, en revanche, ferait mentir la page par omission. Le repli est
-    la seule forme qui tienne les deux : la réponse est en haut, la preuve est
-    dessous, à un doigt.
-  */
-  details.detail { margin-top: 16px; border-top: 1px solid var(--trait); }
-  details.detail > summary {
-    list-style: none; cursor: pointer;
-    padding: 13px 0 11px; font-size: 13px; font-weight: 600; color: var(--accent);
-  }
-  details.detail > summary::-webkit-details-marker { display: none; }
-  details.detail > summary::after { content: ' ▾'; }
-  details.detail[open] > summary::after { content: ' ▴'; }
-  details.detail > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  details.detail .rangs { margin-top: 0; border-top: none; }
-  details.detail .cadre { margin-top: 4px; }
-
-  /*
-    ⚠️ **`.heros` et `.rangee-verdict` ont été retirés le 19 septembre 2026**,
-    avec la figure héroïque qu'ils habillaient. Des styles morts dans un fichier
-    unique qu'on tient à la main ne se remarquent jamais : ils se recopient, et
-    quelqu'un finit par croire qu'ils décrivent l'écran.
-  */
-
-  /* ---- Le verdict : un signe, un mot, une couleur -------------------- */
-  .verdict {
-    display: inline-flex; align-items: center; gap: 7px;
-    margin-top: 12px; padding: 6px 12px 6px 10px;
-    border: 1px solid currentColor; border-radius: 999px;
-    font-size: 13px; font-weight: 600;
-  }
-  .verdict .signe { font-size: 14px; line-height: 1; }
-  .v-critique { color: var(--critique); }
-  .v-alerte   { color: var(--alerte); }
-  .v-calme    { color: var(--calme); }
-
-  /* ---- Les choses à faire : une ligne chacune ------------------------ */
-  .afaire { list-style: none; margin: 16px 0 0; padding: 0; }
+  /* La liste « ce qui attend un geste » */
+  .afaire { list-style: none; margin: 0; padding: 0; display: grid; }
   .afaire li {
-    display: flex; align-items: baseline; gap: 10px;
-    padding: 9px 0; border-top: 1px solid var(--trait);
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    padding: 6px 0; border-top: 1px solid var(--trait);
   }
-  /*
-    ⚠️ **Le signe, et plus une pastille** *(19 septembre 2026)*. C'était un rond
-    de 8 points, teinté par `currentColor` : l'état ne se lisait donc **qu'à la
-    couleur**, et un daltonien voyait sept ronds identiques. `verdict()` posait
-    déjà le signe partout ailleurs dans la page ; cette liste était le seul
-    endroit qui y échappait, et c'est devenu l'endroit le plus lu.
-  */
-  .afaire .signe {
-    flex: 0 0 auto; width: 1.1em; text-align: center;
-    font-size: 13px; line-height: 1;
-  }
-  .afaire .compte { font-weight: 700; font-size: 17px; min-width: 1.6em; color: var(--texte); }
-  .afaire .quoi { flex: 1; color: var(--texte); }
-  .afaire .apres { color: var(--doux); font-size: 12px; }
+  .afaire li:first-child { border-top: 0; }
+  .afaire .signe { width: 14px; text-align: center; font-size: 11px; }
+  /* Le signe porte l'état ; le texte de la ligne reste à l'encre ordinaire. */
+  .afaire li.v-critique, .afaire li.v-alerte, .afaire li.v-calme { background: transparent; color: var(--texte); }
+  .afaire li.v-critique .signe { color: var(--critique); }
+  .afaire li.v-alerte .signe { color: var(--alerte); }
+  .afaire li.v-calme .signe { color: var(--calme); }
+  .afaire .compte { min-width: 26px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .afaire .quoi { font-weight: 500; }
+  .afaire .apres { color: var(--doux); font-size: 11px; }
+  .afaire li.rien .compte, .afaire li.rien .quoi { color: var(--pale); font-weight: 400; }
+  .afaire button.lien { margin-left: auto; min-height: 26px; padding: 2px 10px; background: transparent; color: var(--accent); border-color: var(--trait); }
 
-  /*
-    Une file à zéro reste écrite, mais s'efface : elle dit « j'ai regardé »,
-    pas « occupe-toi de moi ». Sans ce gris, sept lignes vertes pèsent autant
-    que la seule qui réclame un geste.
-  */
-  .afaire li.rien .compte, .afaire li.rien .quoi { color: var(--doux); font-weight: 400; }
-  .afaire li.rien .compte { font-size: 15px; }
-  /*
-    Le raccourci vers l'onglet qui porte la file. Il n'ouvre aucun droit : il
-    clique l'onglet à notre place, donc le chargement paresseux et la
-    revérification `est_moderateur()` restent exactement où ils étaient.
-  */
-  .afaire button.lien {
-    background: transparent; border: none; padding: 10px 0 10px 4px;
-    min-height: 0; font-size: 13px; color: var(--accent); text-decoration: underline;
-  }
+  /* Jauges : la piste est un ton plus clair de la même rampe, jamais un gris. */
+  .jauge { display: grid; gap: 5px; margin: 8px 0; }
+  .jauge-tete, .jauge .haut { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+  .jauge-tete .part, .jauge .haut b { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .piste { height: 8px; background: var(--piste); border-radius: 999px; overflow: hidden; }
+  .remplissage, .rempli { height: 100%; background: var(--accent); border-radius: 999px; }
+  .jauge .bas { font-size: 11px; color: var(--doux); }
+  .pile { display: grid; gap: 12px; }
 
-  /* ---- Les tuiles ---------------------------------------------------- */
-  /* ⚠️ Un maximum, pas seulement un minimum : sinon quatre tuiles s'étirent
-     à 200 points chacune et le nombre flotte seul au milieu de son casier. */
-  .tuiles {
-    display: grid; justify-content: start;
-    grid-template-columns: repeat(auto-fit, minmax(104px, 170px)); gap: 14px 12px;
-  }
-  .tuile .valeur { font-size: 24px; font-weight: 700; line-height: 1.1; }
-  .tuile .nom { font-size: 11px; line-height: 1.25; color: var(--doux); }
-
-  /* ---- Les jauges : piste = ton clair de la même rampe --------------- */
-  .jauge { margin-top: 16px; }
-  .jauge-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
-  .jauge-tete .part { color: var(--doux); font-variant-numeric: tabular-nums; }
-  .piste { height: 8px; border-radius: 4px; background: var(--piste); margin-top: 6px; overflow: hidden; }
-  .remplissage { height: 100%; border-radius: 4px; background: var(--accent); }
-
-  /* ---- Le second rang, plus discret ---------------------------------- */
-  .rangs { margin-top: 18px; border-top: 1px solid var(--trait); }
-  .rang { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13px; }
+  .rangs { display: grid; }
+  .rang { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; }
   .rang + .rang { border-top: 1px solid var(--trait); }
   .rang .etiquette { color: var(--doux); }
   .rang .valeur { font-weight: 600; font-variant-numeric: tabular-nums; }
 
-  /* ---- Le tableau : il défile dans son cadre, jamais la page --------- */
-  .cadre { overflow-x: auto; margin: 0 -4px; }
-  table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--trait); white-space: nowrap; }
-  th { color: var(--doux); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
-  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-  td.barre { width: 34%; min-width: 70px; padding-left: 0; }
-  .minipiste { height: 6px; border-radius: 3px; background: var(--piste); }
-  .miniremplissage { height: 100%; border-radius: 3px; background: var(--accent); }
+  details.detail { margin-top: 10px; }
+  details.detail > summary { cursor: pointer; font-size: 11px; font-weight: 600; color: var(--doux); padding: 4px 0; }
 
-  .note {
-    border-left: 3px solid var(--trait);
-    padding: 10px 12px; margin-top: 16px;
-    color: var(--doux); font-size: 13px;
+  /* ---- Tableaux ------------------------------------------------------ */
+  .cadre, .defile { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--doux); padding: 6px 8px; border-bottom: 1px solid var(--trait); white-space: nowrap;
   }
-  .note strong { color: var(--texte); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--trait); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--creux); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td .secondaire { display: block; font-size: 11px; color: var(--doux); }
+  td.barre { width: 30%; min-width: 60px; }
+  .minipiste { height: 7px; border-radius: 999px; background: var(--piste); overflow: hidden; }
+  .miniremplissage { height: 100%; border-radius: 999px; background: var(--accent); }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--trait); }
+  input.prix { width: 96px; min-height: 30px; padding: 4px 7px; text-align: right; font-variant-numeric: tabular-nums; }
+  input.poste { min-height: 30px; padding: 4px 7px; min-width: 170px; }
 
-  #connexion, #sansScript { max-width: 400px; margin: 40px auto; }
-  #connexion p { color: var(--doux); font-size: 14px; }
-  #connexion input { margin-bottom: 10px; }
-  #connexion button[type="submit"] { width: 100%; }
-  #erreur { color: var(--critique); font-size: 14px; }
-
-  /* ---- Les onglets : une rangée qui se replie, jamais qui défile ------ */
-  /*
-    🔴 Ils défilaient, et deux d'entre eux étaient invisibles à 360 px.
-
-    « Plantages » et « Fichiers » sortaient du cadre par la droite, sans la
-    moindre marque disant qu'ils existaient — et le jour où cela s'est vu,
-    l'onglet hors champ était justement celui qui menait aux huit plantages du
-    jour. Un défilement que personne ne devine cache, il ne range pas. Six
-    pastilles tiennent sur deux rangs sans rien demander à personne.
-  */
-  .onglets {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    margin-bottom: 14px;
+  /* ---- Les courbes --------------------------------------------------- */
+  .courbe { position: relative; }
+  .courbe svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .courbe .axe { fill: var(--pale); font-size: 11px; font-family: "Cabin", sans-serif; }
+  .courbe .grille-l { stroke: var(--trait); stroke-width: 1; }
+  .courbe .viseur { stroke: var(--doux); stroke-width: 1; stroke-dasharray: 3 3; }
+  .bulle {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 120px;
+    background: var(--carte); border: 1px solid var(--trait); border-radius: 8px; box-shadow: var(--ombre);
+    padding: 6px 9px; font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums;
   }
-  .onglet {
-    flex: 0 0 auto; background: transparent; color: var(--doux);
-    border: 1px solid var(--trait); padding: 8px 14px; min-height: 40px;
-    border-radius: 999px; font-size: 13px; font-weight: 600;
-  }
-  .onglet.actif { background: var(--accent); color: var(--surAccent); border-color: var(--accent); }
+  .bulle b { display: block; margin-bottom: 2px; }
+  .bulle .l { display: flex; align-items: center; gap: 6px; }
+  .bulle .l span:last-child { margin-left: auto; font-weight: 700; }
+  .puce { width: 9px; height: 9px; border-radius: 3px; flex: none; display: inline-block; }
+  .legende { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--doux); }
+  .legende span { display: inline-flex; align-items: center; gap: 6px; }
+  .vide-courbe { padding: 26px 0; text-align: center; color: var(--doux); }
 
-  /* ---- L'en-tête d'un panneau : titre, filtre, actualiser ------------- */
-  .panneau-tete {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    margin-bottom: 10px;
+  /* ---- Les sondes, façon Uptime Kuma --------------------------------- */
+  .bandeau {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 13px 15px; border-radius: 12px;
+    border: 1px solid var(--trait); margin-bottom: 13px;
   }
-  .panneau-tete select {
-    font: inherit; padding: 8px 10px; min-height: 40px;
-    border: 1px solid var(--trait); border-radius: 10px;
-    background: var(--carte); color: var(--texte);
+  .bandeau.calme { background: var(--fond-calme); }
+  .bandeau.alerte { background: var(--fond-alerte); }
+  .bandeau.critique { background: var(--fond-critique); }
+  .bandeau .rond { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .bandeau.calme .rond { background: var(--calme); }
+  .bandeau.alerte .rond { background: var(--alerte); }
+  .bandeau.critique .rond { background: var(--critique); }
+  .bandeau b { font-size: 14px; }
+  .bandeau span { color: var(--doux); font-size: 11px; }
+  .groupe-sondes { margin: 12px 0 2px; font-size: 11px; color: var(--doux); font-weight: 600; }
+  .sonde {
+    display: grid; grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 56px 56px; gap: 12px;
+    align-items: center; padding: 6px 0; border-top: 1px solid var(--trait);
   }
-  /* ⚠️ Non plus `.panneau-tete button.petit` : la vue d'ensemble s'en sert aussi. */
-  button.petit { padding: 8px 12px; min-height: 40px; font-size: 13px; }
+  .groupe-sondes + .sonde { border-top: 0; }
+  .sonde .qui b { display: block; font-weight: 600; font-size: 12px; }
+  .sonde .qui span { font-size: 11px; color: var(--doux); }
+  .barres { display: flex; gap: 2px; height: 21px; align-items: stretch; min-width: 0; }
+  .barres i { flex: 1 1 0; min-width: 2px; border-radius: 2px; background: var(--calme); opacity: .85; }
+  .barres i.alerte { background: var(--alerte); opacity: 1; }
+  .barres i.critique { background: var(--critique); opacity: 1; }
+  .barres i.vide { background: var(--trait); }
+  .sonde .chiffre { text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; }
+  .sonde .chiffre b { display: block; font-size: 12px; }
+  .sonde .chiffre span { color: var(--doux); font-size: 11px; }
 
-  /* ---- La ligne d'état d'un panneau : transitoire, jamais muette ------ */
+  /* ---- Les fiches des onglets de modération -------------------------- */
+  .panneau-tete { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .panneau-tete select { min-height: 32px; padding: 4px 9px; }
   .panneau-etat:empty { display: none; }
   .panneau-etat { margin-bottom: 10px; }
-
-  /* ---- Une fiche d'action : le motif d'une file à trancher ------------ */
-  .fiche { }
-  .fiche-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .fiche-tete .etiquette { font-weight: 700; }
-  .fiche-vide { color: var(--doux); font-size: 13px; }
-  .pastille-attention {
-    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
-    background: var(--piste); color: var(--alerte);
-  }
+  .fiche { margin-bottom: 10px; }
+  .fiche-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .fiche-tete .etiquette { font-weight: 700; font-size: 12px; }
+  .fiche-vide { color: var(--doux); font-size: 11px; padding: 14px 0; }
   .fiche-contenu {
-    background: var(--fond); border: 1px solid var(--trait); border-radius: 8px;
-    padding: 8px 10px; font-size: 13px; white-space: pre-wrap;
+    background: var(--creux); border: 1px solid var(--trait); border-radius: 8px;
+    padding: 7px 9px; font-size: 11px; white-space: pre-wrap; margin: 6px 0;
   }
   .fiche-image, .fiche-image-duo img {
-    display: block; max-width: 220px; max-height: 220px; width: auto;
-    border-radius: 8px; border: 1px solid var(--trait); margin-top: 8px;
-    object-fit: cover;
+    display: block; max-width: 180px; max-height: 180px; width: auto;
+    border-radius: 8px; border: 1px solid var(--trait); margin-top: 6px; object-fit: cover;
   }
-  .fiche-image-duo { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .fiche-image-duo { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
   .fiche-image-duo figure { margin: 0; }
-  .fiche-image-duo figcaption { font-size: 11px; color: var(--doux); margin-top: 4px; }
+  .fiche-image-duo figcaption { font-size: 11px; color: var(--doux); margin-top: 3px; }
   .fiche-image-vide {
-    display: flex; align-items: center; justify-content: center;
-    width: 140px; height: 140px; border: 1px dashed var(--trait); border-radius: 8px;
-    color: var(--doux); font-size: 12px; margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; width: 120px; height: 120px;
+    border: 1px dashed var(--trait); border-radius: 8px; color: var(--doux); font-size: 11px; margin-top: 6px;
   }
-  .fiche-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .fiche-actions button { font-size: 13px; padding: 8px 14px; min-height: 40px; }
-  /*
-    ⚠️ **Le geste destructeur se distingue par la forme, jamais par la teinte.**
-
-    Mesuré le 27 août 2026 : `--accent` et `--critique` ne sont séparés que
-    de **1,00:1** en thème sombre et 1,02:1 en clair. Deux boutons pleins,
-    l'un accent l'autre critique, sont donc rigoureusement indiscernables —
-    « Bannir ce compte » avait exactement l'aspect de « Marquer traité »,
-    juste à côté de lui.
-
-    Un contour au lieu d'un aplat sépare les deux d'un coup d'œil, et fait
-    tomber le problème de contraste avec : le texte critique se lit sur le
-    fond de la carte, où il vaut 5,44:1 en clair et 5,68:1 en sombre. C'est
-    aussi ce que fait le téléphone, dont le bouton « Bannir » est un contour
-    et non un aplat.
-  */
-  button.danger {
-    background: transparent; color: var(--critique);
-    border: 1px solid var(--critique);
-  }
-
-  /* ---- Un motif de refus, texte libre, avant de confirmer ------------- */
-  textarea.motif {
-    font: inherit; width: 100%; padding: 10px 12px; min-height: 60px;
-    border: 1px solid var(--trait); border-radius: 10px; resize: vertical;
-    background: var(--carte); color: var(--texte); margin-top: 8px;
-  }
-
-  /* ---- Le formulaire d'une annonce (0149) ------------------------------ */
-  .formulaire-annonce { display: grid; gap: 8px; margin-bottom: 16px; }
-  .formulaire-annonce label { font-size: 13px; font-weight: 600; margin-top: 6px; }
-  .formulaire-annonce textarea {
-    font: inherit; width: 100%; padding: 10px 12px; min-height: 70px; resize: vertical;
-    border: 1px solid var(--trait); border-radius: 10px;
-    background: var(--carte); color: var(--texte);
-  }
-  .formulaire-annonce input:focus-visible,
-  .formulaire-annonce textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .deux-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-  .deux-champs label { display: block; margin-bottom: 6px; }
-  .chiffres-annonce { font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
-
-  /* ---- Le détail dépliable d'un plantage ------------------------------ */
-  .fiche summary { cursor: pointer; font-size: 13px; color: var(--doux); margin-top: 8px; }
+  .fiche-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  textarea.motif { min-height: 50px; margin-top: 6px; resize: vertical; }
+  .fiche summary { cursor: pointer; font-size: 11px; color: var(--doux); margin-top: 6px; }
   .fiche pre {
-    white-space: pre-wrap; word-break: break-word; font-size: 12px;
-    background: var(--fond); border: 1px solid var(--trait); border-radius: 8px;
-    padding: 8px 10px; margin-top: 6px;
+    white-space: pre-wrap; word-break: break-word; font-size: 11px;
+    background: var(--fond); border: 1px solid var(--trait); border-radius: 8px; padding: 7px 9px; margin-top: 5px;
   }
 
-  /* ---- La modale de confirmation : un seul geste la déclenche --------- */
+  /* Le formulaire d'une annonce */
+  .formulaire-annonce { display: grid; gap: 7px; }
+  .formulaire-annonce label { font-size: 11px; font-weight: 600; margin-top: 4px; }
+  .formulaire-annonce textarea { min-height: 60px; resize: vertical; }
+  .deux-champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 9px; }
+  .deux-champs label { display: block; margin-bottom: 5px; }
+  .chiffres-annonce { font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .formulaire-charge { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 12px; }
+  .formulaire-charge label { display: grid; gap: 4px; font-size: 11px; font-weight: 600; flex: 1 1 140px; }
+  .formulaire-charge label.court { flex: 0 1 110px; }
+
+  /* ---- Les fenêtres ---------------------------------------------------- */
   .voile {
-    position: fixed; inset: 0; background: rgba(0,0,0,.5);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px; z-index: 10;
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5);
+    display: flex; align-items: center; justify-content: center; padding: 18px; z-index: 30;
   }
-  /*
-    ⚠️ **Sans cette ligne, la modale ne se ferme jamais.**
-
-    `[hidden]` ne vaut que `display: none` dans la feuille du navigateur, et
-    n'importe quelle règle d'auteur qui pose un `display` l'emporte sur elle.
-    La modale restait donc affichée en permanence, son voile noir par-dessus
-    toute la page — et les deux boutons « Annuler / Bannir » flottaient sous
-    la dernière carte, sans titre ni texte, attendant un clic que personne
-    n'avait demandé.
-
-    Vu en regardant une capture, jamais en relisant la feuille de styles :
-    la règle `.voile` et l'attribut `hidden` sont justes chacun de leur côté.
-  */
+  /* ⚠️ Sans cette ligne, la modale ne se ferme jamais : une règle d'auteur
+     qui pose un `display` l'emporte sur `[hidden]`. */
   .voile[hidden] { display: none; }
-  .modale-boite {
-    background: var(--carte); border-radius: 14px; padding: 20px;
-    max-width: 420px; width: 100%;
-  }
-  .modale-boite h2 { font-size: 17px; margin: 0 0 10px; }
-  .modale-boite p { font-size: 14px; color: var(--doux); white-space: pre-line; }
-  .modale-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
-  /*
-    La duree du bannissement (0134). Elle vit au-dessus des deux boutons et non
-    a cote : c'est une decision qu'on prend AVANT de confirmer, pas un reglage
-    qu'on ajuste en confirmant.
-  */
-  .modale-duree { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-  .modale-duree label { font-size: 14px; color: var(--doux); }
-  .modale-duree select {
-    font: inherit; padding: 8px 10px; min-height: 40px; flex: 1;
-    border: 1px solid var(--trait); border-radius: 10px;
-    background: var(--carte); color: var(--texte);
-  }
-  .modale-duree select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-  /* ---- Écrire à quelqu'un : le seul endroit de la page où l'on tape ---- */
-  .modale-boite textarea {
-    font: inherit; width: 100%; min-height: 130px; resize: vertical;
-    padding: 12px 14px; margin-top: 4px;
-    border: 1px solid var(--trait); border-radius: 10px;
-    background: var(--fond); color: var(--texte);
-  }
-  .modale-boite textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .compte-restant { font-size: 12px; color: var(--doux); text-align: right; margin: 6px 0 0; }
+  .modale-boite { background: var(--carte); border-radius: 14px; padding: 18px; max-width: 420px; width: 100%; }
+  .modale-boite h2 { font-size: 14px; margin: 0 0 8px; }
+  .modale-boite p { font-size: 12px; color: var(--doux); white-space: pre-line; }
+  .modale-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+  .modale-actions button.danger { background: var(--critique); color: var(--surCritique); }
+  .modale-duree { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .modale-duree label { font-size: 12px; color: var(--doux); }
+  .modale-duree select { flex: 1; }
+  .modale-boite textarea { min-height: 120px; resize: vertical; background: var(--fond); }
+  .compte-restant { font-size: 11px; color: var(--doux); text-align: right; margin: 5px 0 0; }
   .compte-restant.trop { color: var(--critique); font-weight: 700; }
 
-  /*
-    Dans la modale, le bouton qui tranche redevient un aplat.
+  /* ---- La connexion ---------------------------------------------------- */
+  .ecran-seul { max-width: 420px; margin: 8vh auto 24px; }
+  #connexion h1, #sansScript h1 { margin: 0 0 6px; font: 700 22px/1.2 "Fraunces", Georgia, serif; }
+  #connexion form { display: grid; gap: 9px; margin-top: 12px; }
+  #connexion #basculer { background: transparent; border: 0; color: var(--accent); text-decoration: underline; padding: 6px 0; min-height: 0; }
+  #erreur { color: var(--critique); font-weight: 600; font-size: 12px; }
+  .defi { margin-top: 12px; min-height: 65px; }
+  .defi-attente { font-size: 11px; color: var(--doux); margin: 6px 0 0; }
 
-    Le contour est ce qui distingue un geste destructeur **au milieu d'une
-    rangée d'autres gestes** ; ici il n'y a que deux boutons, on a déjà lu
-    l'avertissement, et deux contours côte à côte n'auraient plus de
-    hiérarchie. L'encre est mesurée sur le critique de chaque thème.
-  */
-  .modale-actions button.danger {
-    background: var(--critique); color: var(--surCritique); border-color: var(--critique);
+  /* ---- Tablette et téléphone ------------------------------------------- */
+  @media (max-width: 1100px) {
+    .p8, .p6 { grid-column: span 12; }
+    .p4, .p3 { grid-column: span 6; }
   }
-
-  @media (max-width: 480px) {
-    body { padding: 10px; }
-    .carte { padding: 14px 12px; margin-bottom: 12px; }
-
-    /*
-      ⚠️ Le titre prend une ligne entière, les boutons la suivante.
-
-      Sans cela, `flex: 1` sur le titre pousse les deux boutons hors du
-      cadre : « Actualiser » sortait de l'écran par la droite sur 360 px,
-      et l'en-tête ne se repliait pas malgré `flex-wrap`. Vu en regardant
-      une capture, jamais en relisant la feuille de styles.
-    */
-    .grandit { flex: 1 0 100%; }
-    header { gap: 8px; }
-    header button { flex: 1; padding: 9px 10px; }
-    .onglet { padding: 8px 12px; font-size: 12px; }
-    h2.question { font-size: 16px; }
-    td.barre { min-width: 44px; }
+  @media (max-width: 860px) {
+    .charpente { grid-template-columns: minmax(0, 1fr); }
+    .lateral {
+      position: fixed; inset: 0 auto 0 0; width: min(280px, 86vw); z-index: 25; height: 100%;
+      transform: translateX(-102%); transition: transform .2s ease; box-shadow: var(--ombre);
+    }
+    .lateral.ouvert { transform: none; }
+    .tete .menu { display: inline-flex; }
+    .contenu { padding-inline: 14px; }
+    .tete .outils { margin-left: 0; width: 100%; }
+  }
+  @media (max-width: 560px) {
+    /* Deux tuiles par ligne sur téléphone : une par ligne rallongeait la page
+       de quatre écrans pour quatre chiffres. */
+    .p4 { grid-column: span 12; }
+    .p3 { grid-column: span 6; }
+    .tuile .valeur { font-size: 20px; }
+    .grille { gap: 10px; }
+    .heros .valeur { font-size: 36px; }
+    .sonde { grid-template-columns: minmax(0, 1fr) 54px; gap: 6px 10px; }
+    .sonde .barres { grid-column: 1 / -1; grid-row: 2; }
+    .sonde .chiffre.latence { display: none; }
     .fiche-image, .fiche-image-vide { max-width: 100%; width: 140px; }
   }
-
-  /*
-    Le défi anti-robot. Cloudflare dessine le widget lui-même ; on ne lui pose
-    qu'une marge, et une ligne d'attente qui dit ce qui se passe tant qu'il ne
-    s'est rien affiché.
-  */
-  .defi { margin-top: 14px; min-height: 65px; }
-  .defi-attente { font-size: 13px; color: var(--doux); margin: 6px 0 0; }
 </style>
 
 <!--
@@ -569,7 +559,7 @@
   À l'envers — cachée puis affichée en cas d'erreur — elle ne servirait à rien :
   le cas qu'elle doit couvrir est justement celui où aucun script ne tourne.
 -->
-<section id="sansScript" class="carte" style="border-color:var(--critique)">
+<section id="sansScript" class="carte ecran-seul" style="border-color:var(--critique)">
   <h1>Le script de cette page n'a pas démarré</h1>
   <p>Deux causes possibles, dans cet ordre de fréquence :</p>
   <p><strong>1. Vous regardez un aperçu qui interdit les scripts.</strong>
@@ -581,7 +571,7 @@
      ensemble, toujours.</p>
 </section>
 
-<section id="connexion" class="carte" hidden>
+<section id="connexion" class="carte ecran-seul" hidden>
   <h1>SoulSyncro</h1>
   <p>Tableau de bord d'exploitation. Réservé aux comptes de modération.</p>
 
@@ -648,31 +638,74 @@
   <p id="erreur"></p>
 </section>
 
-<main id="bord" hidden>
-  <header>
-    <h1 class="grandit">SoulSyncro</h1>
-    <span class="discret" id="horodatage"></span>
-    <button id="actualiser">Actualiser</button>
-    <button id="sortir" class="sobre">Sortir</button>
-  </header>
-
-  <nav class="onglets" id="onglets">
-    <button type="button" class="onglet actif" data-onglet="ensemble">Vue d'ensemble</button>
-    <button type="button" class="onglet" data-onglet="signalements">Signalements</button>
-    <button type="button" class="onglet" data-onglet="messages">Messages</button>
-    <button type="button" class="onglet" data-onglet="bannis">Bannis</button>
-    <button type="button" class="onglet" data-onglet="badges">Badges</button>
-    <button type="button" class="onglet" data-onglet="suspects">Profils suspects</button>
-    <button type="button" class="onglet" data-onglet="plantages">Plantages</button>
-    <button type="button" class="onglet" data-onglet="fichiers">Fichiers</button>
-    <button type="button" class="onglet" data-onglet="annonces">Annonces</button>
+<!--
+  La charpente de la refonte du 24 septembre 2026 : une barre latérale groupée
+  et le contenu. ⚠️ Les boutons de la barre gardent la classe `onglet` et leur
+  `data-onglet` : c'est par eux que le code des onglets bascule les pages, et
+  lui n'a pas changé.
+-->
+<div class="charpente" id="bord" hidden>
+  <nav class="lateral" id="lateral" aria-label="Sections du tableau de bord">
+    <div class="marque"><b>Soul</b><b>Syncro</b><small>Tableau de bord</small></div>
+    <div id="navigation">
+      <div class="groupe"><h2>Pilotage</h2><ul>
+        <li><button type="button" class="onglet actif" data-onglet="ensemble"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Vue d'ensemble</span></button></li>
+        <li><button type="button" class="onglet" data-onglet="couts"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H6"/></svg><span>Coûts et bénéfice</span></button></li>
+        <li><button type="button" class="onglet" data-onglet="serveurs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v5H4zM4 14h16v5H4zM8 7.5h.01M8 16.5h.01"/></svg><span>Serveurs</span></button></li>
+      </ul></div>
+      <div class="groupe"><h2>Modération</h2><ul>
+        <li><button type="button" class="onglet" data-onglet="signalements"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg><span>Signalements</span><span class="compte" id="compte-signalements" hidden></span></button></li>
+        <li><button type="button" class="onglet" data-onglet="messages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Messages</span><span class="compte" id="compte-messages" hidden></span></button></li>
+        <li><button type="button" class="onglet" data-onglet="bannis"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8"/></svg><span>Bannis</span></button></li>
+        <li><button type="button" class="onglet" data-onglet="badges"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z"/></svg><span>Badges</span><span class="compte" id="compte-badges" hidden></span></button></li>
+        <li><button type="button" class="onglet" data-onglet="suspects"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5"/></svg><span>Profils suspects</span><span class="compte" id="compte-suspects" hidden></span></button></li>
+      </ul></div>
+      <div class="groupe"><h2>Technique</h2><ul>
+        <li><button type="button" class="onglet" data-onglet="plantages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Plantages</span><span class="compte" id="compte-plantages" hidden></span></button></li>
+        <li><button type="button" class="onglet" data-onglet="fichiers"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13H6zM14 3v6h6"/></svg><span>Fichiers</span></button></li>
+      </ul></div>
+      <div class="groupe"><h2>Commerce</h2><ul>
+        <li><button type="button" class="onglet" data-onglet="annonces"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l6 4V6L7 10zM17 9a4 4 0 0 1 0 6"/></svg><span>Annonces</span></button></li>
+      </ul></div>
+    </div>
+    <div class="pied">
+      <span id="horodatage"></span>
+      <button id="sortir" class="sobre petit" type="button">Sortir</button>
+    </div>
   </nav>
 
-  <div class="panneau" data-panneau="ensemble">
-    <div id="contenu"></div>
-  </div>
+  <main class="contenu">
+    <div class="tete">
+      <button class="sobre petit menu" id="ouvrirMenu" type="button" aria-controls="lateral" aria-expanded="false">☰ Menu</button>
+      <h1 id="titrePage">Vue d'ensemble</h1>
+      <div class="outils">
+        <div class="periodes" role="group" aria-label="Période" id="periodes"></div>
+        <button id="actualiser" class="sobre petit" type="button">↻ Actualiser</button>
+      </div>
+      <p class="sous" id="sousPage">Ce qui demande ton attention, puis l'état du service.</p>
+    </div>
 
-  <div class="panneau" data-panneau="signalements" hidden>
+    <div class="page" data-panneau="ensemble">
+      <div id="contenu"></div>
+    </div>
+
+    <!-- Coûts et bénéfice (0151) : recettes, charges modifiables, résultat. -->
+    <div class="page" data-panneau="couts" hidden>
+      <div class="panneau-tete">
+        <label for="moisCouts" class="discret">Mois</label>
+        <select id="moisCouts"></select>
+      </div>
+      <div class="panneau-etat" id="etatCouts"></div>
+      <div id="contenuCouts"></div>
+    </div>
+
+    <!-- Serveurs (0151) : sondes toutes les 30 minutes, tâches, base. -->
+    <div class="page" data-panneau="serveurs" hidden>
+      <div class="panneau-etat" id="etatServeurs"></div>
+      <div id="contenuServeurs"></div>
+    </div>
+
+  <div class="page" data-panneau="signalements" hidden>
     <div class="panneau-tete">
       <select id="filtreSignalements">
         <option value="nouveau">Nouveaux</option>
@@ -709,7 +742,7 @@
     écrit ne regarde pas `is_banned`, et la fiche dit « Compte banni » pour que
     la demande se lise avec ce qu'elle réclame.
   -->
-  <div class="panneau" data-panneau="messages" hidden>
+  <div class="page" data-panneau="messages" hidden>
     <div class="panneau-tete">
       <select id="filtreMessages">
         <option value="attente">À traiter</option>
@@ -721,7 +754,7 @@
     <div id="listeMessages"></div>
   </div>
 
-  <div class="panneau" data-panneau="bannis" hidden>
+  <div class="page" data-panneau="bannis" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
       <button type="button" class="sobre petit" id="actualiserBannis">Actualiser</button>
@@ -730,7 +763,7 @@
     <div id="listeBannis"></div>
   </div>
 
-  <div class="panneau" data-panneau="badges" hidden>
+  <div class="page" data-panneau="badges" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
       <button type="button" class="sobre petit" id="actualiserBadges">Actualiser</button>
@@ -739,7 +772,7 @@
     <div id="listeBadges"></div>
   </div>
 
-  <div class="panneau" data-panneau="suspects" hidden>
+  <div class="page" data-panneau="suspects" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
       <button type="button" class="sobre petit" id="actualiserSuspects">Actualiser</button>
@@ -748,7 +781,7 @@
     <div id="listeSuspects"></div>
   </div>
 
-  <div class="panneau" data-panneau="plantages" hidden>
+  <div class="page" data-panneau="plantages" hidden>
     <div class="panneau-tete">
       <select id="filtrePlantages">
         <option value="ouverts">À regarder</option>
@@ -760,7 +793,7 @@
     <div id="listePlantages"></div>
   </div>
 
-  <div class="panneau" data-panneau="fichiers" hidden>
+  <div class="page" data-panneau="fichiers" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
       <button type="button" class="sobre petit" id="actualiserFichiers">Actualiser</button>
@@ -774,7 +807,7 @@
     des commerces, au forfait par semaine et par ville. Le détail et les
     interdits : docs/annonces-sponsorisees.md.
   -->
-  <div class="panneau" data-panneau="annonces" hidden>
+  <div class="page" data-panneau="annonces" hidden>
     <div class="panneau-tete">
       <span class="grandit"></span>
       <button type="button" class="sobre petit" id="nouvelleAnnonce">Nouvelle annonce</button>
@@ -822,6 +855,10 @@
         </div>
       </div>
 
+      <label for="annPrix">Prix du forfait <span class="discret">(FCFA — ce que le commerçant a payé)</span></label>
+      <input id="annPrix" type="number" min="0" step="500" inputmode="numeric" placeholder="Ex. : 25000">
+      <p class="discret">Il ne s'affiche jamais dans l'application : il sert au bénéfice du mois, dans « Coûts et bénéfice ».</p>
+
       <label for="annImage">Image</label>
       <input id="annImage" type="file" accept="image/jpeg,image/png,image/webp">
       <p class="discret" id="annImageNote">
@@ -838,7 +875,8 @@
     <datalist id="villesConnues"></datalist>
     <div id="listeAnnonces"></div>
   </div>
-</main>
+  </main>
+</div>
 
 <div class="voile" id="modale" hidden>
   <div class="modale-boite">
@@ -2426,6 +2464,23 @@
     return '<span class="pastille-attention">✓ En ligne</span>';
   }
 
+  /*
+    Combien de comptes gratuits l'annonce peut atteindre (0150) — la même règle
+    que le fil, écrite une fois en base. Zéro, c'est presque toujours une ville
+    ou une commune mal orthographiée : « Abidjn » ne correspond à personne, et
+    avant 0150 rien ne le disait — l'annonce était « en ligne », payée, et vue
+    par personne. L'alerte porte un signe et un mot, jamais la couleur seule.
+  */
+  function atteints(a) {
+    var n = Number(a.comptes_atteints);
+    if (n === 0) {
+      return '<p class="chiffres-annonce"><span class="pastille-attention">⚠ Aucun compte ' +
+        'gratuit dans cette ville</span> Vérifie l\'orthographe de la ville et de la commune.</p>';
+    }
+    return '<p class="chiffres-annonce">Peut atteindre ' + nb(n) + ' ' +
+      ech(accord(n, 'compte gratuit', 'comptes gratuits')) + '</p>';
+  }
+
   function ficheAnnonce(a) {
     var lieu = a.commune ? a.ville + ' · ' + a.commune : a.ville + ' · toute la ville';
     var basculer = a.etat === 'en_ligne'
@@ -2438,6 +2493,7 @@
       '</div>' +
       '<p class="discret">' + ech(lieu) + ' · du ' + ech(dateCourte(a.debut)) +
         ' au ' + ech(dateCourte(a.fin)) + '</p>' +
+      atteints(a) +
       imgTag(a.image_chemin, 'annonces', 'fiche-image') +
       '<div class="fiche-contenu" style="margin-top:8px">' + ech(a.texte) + '</div>' +
       (a.lien ? '<p class="discret" style="margin-top:6px">Lien : ' + ech(a.lien) + '</p>' : '') +
@@ -2446,6 +2502,8 @@
         nb(a.touches) + ' ' + ech(accord(Number(a.touches), 'touche', 'touches')) +
         ' <span class="discret">— 7 derniers jours : ' + nb(a.affichages_7j) + ' · ' + nb(a.touches_7j) + '</span>' +
       '</p>' +
+      '<p class="chiffres-annonce">Forfait : ' + (a.prix_fcfa === null || a.prix_fcfa === undefined
+        ? '<span class="discret">non saisi — il manquera au bénéfice du mois</span>' : fcfa(a.prix_fcfa)) + '</p>' +
       '<div class="fiche-actions">' + basculer +
         '<button type="button" class="sobre" data-action="modifier" data-id="' + a.id + '">Modifier</button>' +
         '<button type="button" class="danger" data-action="supprimer" data-id="' + a.id + '" ' +
@@ -2503,6 +2561,7 @@
     // Une semaine par défaut : c'est l'unité de vente.
     $('annDebut').value = a ? a.debut : aujourdhui(0);
     $('annFin').value = a ? a.fin : aujourdhui(6);
+    $('annPrix').value = a && a.prix_fcfa !== null && a.prix_fcfa !== undefined ? a.prix_fcfa : '';
     $('annImage').value = '';
     f.hidden = false;
     void remplirVilles();
@@ -2561,6 +2620,12 @@
       poserEtat('etatAnnonces', 'critique', 'Le lien doit commencer par https:// ou tel:.');
       return;
     }
+    var prixTexte = $('annPrix').value.trim();
+    var prix = prixTexte === '' ? null : parseInt(prixTexte, 10);
+    if (prixTexte !== '' && (isNaN(prix) || prix < 0)) {
+      poserEtat('etatAnnonces', 'critique', 'Le prix du forfait doit être un nombre entier de francs, ou rester vide.');
+      return;
+    }
     if (!fichier && !f.dataset.chemin) {
       poserEtat('etatAnnonces', 'critique', 'Choisis une image.');
       return;
@@ -2598,13 +2663,25 @@
         p_ville: ville,
         p_commune: $('annCommune').value.trim() || null,
         p_debut: debut,
-        p_fin: fin
+        p_fin: fin,
+        p_prix_fcfa: prix
       });
       if (r.error) throw new Error(r.error.message);
 
       fermerFormulaire();
-      poserEtat('etatAnnonces', 'calme', f.dataset.id ? 'Annonce enregistrée.' : 'Annonce enregistrée en brouillon.');
       await chargerAnnonces();
+      /*
+        Après le rechargement, et pas avant : c'est la liste fraîche qui dit
+        combien de comptes l'annonce atteint. Une annonce qui n'atteint
+        personne se signale au moment même où on vient de l'écrire.
+      */
+      var enregistree = annoncesChargees.find(function (x) { return x.id === r.data; });
+      if (enregistree && Number(enregistree.comptes_atteints) === 0) {
+        poserEtat('etatAnnonces', 'alerte',
+          "Annonce enregistrée, mais elle n'atteint aucun compte gratuit : vérifie la ville et la commune.");
+      } else {
+        poserEtat('etatAnnonces', 'calme', f.dataset.id ? 'Annonce enregistrée.' : 'Annonce enregistrée en brouillon.');
+      }
     } catch (cause) {
       var m = String(cause && cause.message || cause);
       poserEtat('etatAnnonces', 'critique',
@@ -2653,6 +2730,703 @@
   });
 
   /* ---------------------------------------------------------------------
+     La refonte du 24 septembre 2026 — navigation, période, courbes, et les
+     deux pages neuves : « Coûts et bénéfice » et « Serveurs » (0151).
+     ---------------------------------------------------------------------
+
+     Ce bloc n'appelle aucune fonction d'écriture qui n'existait pas, sauf les
+     trois gestes sur les charges (`modifier_charge`, `ajouter_charge`,
+     `retirer_charge`), gardés en base par `est_moderateur()` comme les autres.
+  */
+
+  /** Le titre et le sous-titre de chaque page, dans l'ordre de la barre. */
+  var PAGES = {
+    ensemble: { titre: "Vue d'ensemble", sous: "Ce qui demande ton attention, puis l'état du service.", periode: true },
+    couts: { titre: 'Coûts et bénéfice', sous: 'Recettes, charges et résultat du mois, en FCFA.', periode: false },
+    serveurs: { titre: 'Serveurs', sous: 'Sondes toutes les 30 minutes, tâches planifiées et santé de la base.', periode: true },
+    signalements: { titre: 'Signalements', sous: 'Promesse publique : traités sous 48 heures. Google Play en attend 24.' },
+    messages: { titre: 'Messages', sous: 'Ce que les inscrits écrivent à la modération.' },
+    bannis: { titre: 'Bannis', sous: "Un bannissement à durée se lève de lui-même ; un définitif n'a que cet écran." },
+    badges: { titre: 'Badges', sous: 'Comparer le selfie reçu et la photo de profil.' },
+    suspects: { titre: 'Profils suspects', sous: 'Classés par score, avec les motifs. Aucun bannissement automatique.' },
+    plantages: { titre: 'Plantages', sous: 'Groupés par empreinte : une erreur, une ligne.' },
+    fichiers: { titre: 'Fichiers', sous: "La file d'effacement, vidée chaque nuit à 5 h 09." },
+    annonces: { titre: 'Annonces', sous: 'Vendues au forfait, à la semaine et par ville.' }
+  };
+  var pageCourante = 'ensemble';
+
+  function poserTitre(nom) {
+    var p = PAGES[nom] || PAGES.ensemble;
+    pageCourante = nom;
+    $('titrePage').textContent = p.titre;
+    $('sousPage').textContent = p.sous;
+    $('periodes').hidden = !p.periode;
+  }
+
+  function fermerMenu() {
+    $('lateral').classList.remove('ouvert');
+    $('ouvrirMenu').setAttribute('aria-expanded', 'false');
+  }
+
+  $('ouvrirMenu').addEventListener('click', function () {
+    var ouvert = $('lateral').classList.toggle('ouvert');
+    $('ouvrirMenu').setAttribute('aria-expanded', String(ouvert));
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fermerMenu(); });
+
+  /** Les pastilles de la barre latérale, depuis la santé. Zéro : rien. */
+  function poserComptes(s) {
+    var comptes = {
+      signalements: s.signalements_en_attente, messages: s.messages_en_attente,
+      badges: s.badges_en_attente, suspects: s.profils_suspects, plantages: s.plantages_non_traites
+    };
+    Object.keys(comptes).forEach(function (nom) {
+      var pastille = $('compte-' + nom);
+      if (!pastille) return;
+      var n = Number(comptes[nom]) || 0;
+      pastille.hidden = n === 0;
+      pastille.textContent = n > 99 ? '99+' : String(n);
+      pastille.setAttribute('aria-label', n + ' à traiter');
+    });
+  }
+
+  /* ---- La période ------------------------------------------------------ */
+  var PERIODES = [
+    { jours: 1, nom: '24 h' }, { jours: 7, nom: '7 j' }, { jours: 30, nom: '30 j' }, { jours: 90, nom: '90 j' }
+  ];
+  var periodeJours = 30;
+  try {
+    var memo = parseInt(localStorage.getItem('tableau.periode') || '', 10);
+    if (PERIODES.some(function (p) { return p.jours === memo; })) periodeJours = memo;
+  } catch (e) { /* stockage refusé : on garde 30 jours */ }
+
+  function dessinerPeriodes() {
+    $('periodes').innerHTML = PERIODES.map(function (p) {
+      return '<button type="button" data-periode="' + p.jours + '" aria-pressed="' + (p.jours === periodeJours) + '">' + p.nom + '</button>';
+    }).join('');
+  }
+  dessinerPeriodes();
+
+  $('periodes').addEventListener('click', function (e) {
+    var bouton = e.target.closest('[data-periode]');
+    if (!bouton) return;
+    periodeJours = parseInt(bouton.getAttribute('data-periode'), 10);
+    try { localStorage.setItem('tableau.periode', String(periodeJours)); } catch (err) { /* sans importance */ }
+    dessinerPeriodes();
+    if (pageCourante === 'ensemble') charger();
+    if (pageCourante === 'serveurs') chargerServeurs();
+  });
+
+  /* ---- Les dates dites en mots ----------------------------------------- */
+  function ilYA(quand) {
+    var d = new Date(quand);
+    if (isNaN(d.getTime())) return '—';
+    var min = Math.round((Date.now() - d.getTime()) / 60000);
+    if (min < 1) return "à l'instant";
+    if (min < 60) return 'il y a ' + min + ' min';
+    var h = Math.round(min / 60);
+    if (h < 24) return 'il y a ' + h + ' h';
+    var j = Math.round(h / 24);
+    return j === 1 ? 'hier' : 'il y a ' + j + ' jours';
+  }
+
+  function octets(n) {
+    n = Number(n) || 0;
+    if (n >= 1073741824) return (n / 1073741824).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' Go';
+    if (n >= 1048576) return (n / 1048576).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' Mo';
+    return Math.round(n / 1024).toLocaleString('fr-FR') + ' Ko';
+  }
+
+  function fcfa(n) { return nb(Math.round(Number(n) || 0)) + ' F'; }
+
+  /** Le rythme d'une tâche `pg_cron`, dit comme on le dirait. */
+  function rythme(expr) {
+    var p = String(expr || '').trim().split(/\s+/);
+    if (p.length !== 5) return expr;
+    if (p.join(' ') === '* * * * *') return 'Chaque minute';
+    if (p[2] === '*' && p[3] === '*' && p[4] === '*') {
+      if (/^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) {
+        var h = parseInt(p[1], 10);
+        return (h >= 17 ? 'Chaque soir' : h < 6 ? 'Chaque nuit' : 'Chaque jour') + ', ' + h + ' h ' + String(p[0]).padStart(2, '0');
+      }
+      if (p[1] === '*' && /^\d+(,\d+)+$/.test(p[0])) {
+        var minutes = p[0].split(',');
+        return 'Toutes les ' + Math.round(60 / minutes.length) + ' minutes';
+      }
+    }
+    return expr;
+  }
+
+  /* ---------------------------------------------------------------------
+     La courbe — une échelle, une grille pâle, une aire, un point final, un
+     viseur et une bulle au survol. Dessinée ici, sans bibliothèque : une de
+     moins à recopier dans `vendor/`, et rien qui dépende d'un site tiers.
+     --------------------------------------------------------------------- */
+  var courbes = {};
+  var numeroCourbe = 0;
+
+  function courbe(o) {
+    var n = o.etiquettes.length;
+    if (n === 0 || o.series.length === 0) return '<p class="vide-courbe">Pas encore de données sur cette période.</p>';
+    var id = 'c' + (++numeroCourbe);
+    courbes[id] = o;
+    var legende = o.series.length > 1
+      ? '<div class="legende">' + o.series.map(function (s) {
+          return '<span><i class="puce" style="background:var(' + s.teinte + ')"></i>' + ech(s.nom) + '</span>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="courbe" data-courbe="' + id + '">' + svgCourbe(o) + '</div>' + legende +
+      (o.note ? '<p class="discret" style="margin:6px 0 0">' + o.note + '</p>' : '');
+  }
+
+  function svgCourbe(o) {
+    // `largeur` : une courbe en pleine largeur prend un repère plus large, sinon
+    // elle garderait les proportions d'une demi-colonne et deviendrait très haute.
+    var L = o.largeur || 640, H = o.hauteur || 190, g = 44, d = 12, h = 10, b = 24;
+    var tous = [].concat.apply([], o.series.map(function (s) { return s.valeurs; })).map(Number);
+    var max = Math.max.apply(null, tous.concat([0]));
+    if (max <= 0) max = 1;
+    var pasY = Math.pow(10, Math.floor(Math.log10(max)));
+    var haut = Math.ceil(max / pasY) * pasY;
+    if (haut / pasY < 3) pasY /= 2;
+    if (pasY < 1) { pasY = 1; haut = Math.max(haut, 1); }
+    var n = o.etiquettes.length;
+    var x = function (i) { return g + (n === 1 ? (L - g - d) / 2 : (i / (n - 1)) * (L - g - d)); };
+    var y = function (v) { return h + (1 - v / haut) * (H - h - b); };
+    var svg = '<svg viewBox="0 0 ' + L + ' ' + H + '" role="img" aria-label="' + ech(o.titre || '') + '">';
+    for (var v = 0; v <= haut + 1e-9; v += pasY) {
+      svg += '<line class="grille-l" x1="' + g + '" x2="' + (L - d) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+      svg += '<text class="axe" x="' + (g - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' +
+        ech(o.formatY ? o.formatY(v) : nb(v)) + '</text>';
+    }
+    [0, Math.round((n - 1) / 3), Math.round(2 * (n - 1) / 3), n - 1]
+      .filter(function (v, i, a) { return a.indexOf(v) === i; })
+      .forEach(function (i) {
+        svg += '<text class="axe" x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="' +
+          (n === 1 ? 'middle' : i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle') + '">' + ech(o.etiquettes[i]) + '</text>';
+      });
+    o.series.forEach(function (s, k) {
+      var pts = s.valeurs.map(function (v, i) { return x(i) + ',' + y(Number(v) || 0); }).join(' ');
+      if (k === 0 && o.aire !== false && n > 1) {
+        svg += '<polygon points="' + x(0) + ',' + y(0) + ' ' + pts + ' ' + x(n - 1) + ',' + y(0) +
+          '" style="fill:var(' + s.teinte + ');opacity:.12"/>';
+      }
+      svg += '<polyline points="' + pts + '" fill="none" style="stroke:var(' + s.teinte +
+        ')" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      svg += '<circle cx="' + x(n - 1) + '" cy="' + y(Number(s.valeurs[n - 1]) || 0) + '" r="4" style="fill:var(' +
+        s.teinte + ');stroke:var(--carte)" stroke-width="2"/>';
+    });
+    svg += '<line class="viseur" data-viseur x1="0" x2="0" y1="' + h + '" y2="' + (H - b) + '" visibility="hidden"/>';
+    svg += '<rect x="' + g + '" y="0" width="' + (L - g - d) + '" height="' + H + '" fill="transparent"/>';
+    return svg + '</svg>';
+  }
+
+  function activerCourbes(racine) {
+    racine.querySelectorAll('[data-courbe]').forEach(function (bloc) {
+      var o = courbes[bloc.getAttribute('data-courbe')];
+      if (!o) return;
+      var svg = bloc.querySelector('svg');
+      var viseur = svg.querySelector('[data-viseur]');
+      var bulle = null;
+      var n = o.etiquettes.length;
+      var L = o.largeur || 640;
+      svg.addEventListener('pointermove', function (evt) {
+        var r = svg.getBoundingClientRect();
+        var px = (evt.clientX - r.left) / r.width * L;
+        var i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((px - 44) / (L - 56) * (n - 1))));
+        var xi = n === 1 ? 44 + (L - 56) / 2 : 44 + (i / (n - 1)) * (L - 56);
+        viseur.setAttribute('x1', xi); viseur.setAttribute('x2', xi); viseur.setAttribute('visibility', 'visible');
+        if (!bulle) { bulle = document.createElement('div'); bulle.className = 'bulle'; bloc.appendChild(bulle); }
+        bulle.innerHTML = '<b>' + ech(o.etiquettes[i]) + '</b>' + o.series.map(function (s) {
+          return '<div class="l"><i class="puce" style="background:var(' + s.teinte + ')"></i><span>' + ech(s.nom) +
+            '</span><span>' + ech(o.formatV ? o.formatV(s.valeurs[i]) : nb(s.valeurs[i])) + '</span></div>';
+        }).join('');
+        var gauche = (xi / L) * r.width + 12;
+        if (gauche + 160 > r.width) gauche = (xi / L) * r.width - 12 - bulle.offsetWidth;
+        bulle.style.left = Math.max(0, gauche) + 'px';
+        bulle.style.top = '4px';
+      });
+      svg.addEventListener('pointerleave', function () {
+        viseur.setAttribute('visibility', 'hidden');
+        if (bulle) { bulle.remove(); bulle = null; }
+      });
+    });
+  }
+
+  function jaugeSur(nom, valeur, plafond, texteValeur, textePlafond, bas) {
+    var pct = plafond > 0 ? Math.min(100, Math.round(valeur / plafond * 100)) : 0;
+    return '<div class="jauge"><div class="haut"><span>' + ech(nom) + '</span><b>' + ech(texteValeur) +
+      ' <span class="discret" style="font-weight:500">sur ' + ech(textePlafond) + '</span></b></div>' +
+      '<div class="piste" role="img" aria-label="' + pct + ' %"><div class="rempli" style="width:' + pct + '%"></div></div>' +
+      '<div class="bas">' + pct + ' % utilisés' + (bas ? ' · ' + bas : '') + '</div></div>';
+  }
+
+  /*
+    Les plafonds du forfait Supabase. ⚠️ Le projet est au forfait GRATUIT
+    (500 Mo de base, 1 Go de stockage, 5 Go de sortie). Le jour du passage au
+    Pro, ce sont ces trois nombres qu'il faut changer — 8 Go, 100 Go, 250 Go.
+  */
+  var PLAFONDS = { nom: 'forfait gratuit', base: 500 * 1048576, stockage: 1073741824, sortie: 5 * 1073741824 };
+
+  /*
+    La sortie de données, estimée (0153). Supabase ne la donne à aucune
+    interface : ces lignes sont un calcul de la base, fait chaque nuit, et
+    chacune dit ce qu'elle compte.
+  */
+  var SOURCES_SORTIE = [
+    { cle: 'decouverte', nom: 'Découverte', compte: 'La photo principale de chaque profil décidé' },
+    { cle: 'fil', nom: 'Fil', compte: 'Chaque publication, une fois par personne active de son audience ; la moitié de ses vidéos' },
+    { cle: 'statuts', nom: 'Statuts', compte: 'Chaque statut vu, vidéo comprise : elle démarre seule' },
+    { cle: 'messages', nom: 'Messages', compte: 'Chaque photo et note vocale, une fois, par qui la reçoit' },
+    { cle: 'annonces', nom: 'Annonces', compte: 'Chaque affichage de l\'image' }
+  ];
+
+  function sortieDuMois(s) {
+    s = s || {};
+    var total = SOURCES_SORTIE.reduce(function (t, x) { return t + (Number(s[x.cle]) || 0); }, 0);
+    var jours = Number(s.jours) || 0;
+    var duMois = Number(s.jours_du_mois) || 30;
+    return { total: total, jours: jours, parJour: jours ? total / jours : 0, projection: jours ? total / jours * duMois : 0 };
+  }
+
+  var LIEN_USAGE = 'https://supabase.com/dashboard/project/pezfgziqkqhoyazlrxrd/settings/billing/usage';
+
+  function blocSortie(s) {
+    s = s || {};
+    var m = sortieDuMois(s);
+    if (!m.jours) {
+      return '<div class="p12"><div class="carte"><h3>Sortie de données <span class="note-titre">estimation</span></h3>' +
+        '<p class="discret">Pas encore de jour complet ce mois-ci : l\'estimation se calcule chaque nuit pour la veille.</p></div></div>';
+    }
+    var lignes = SOURCES_SORTIE.map(function (x) {
+      var v = Number(s[x.cle]) || 0;
+      var part = m.total > 0 ? Math.round(v / m.total * 100) : 0;
+      return '<tr><td>' + ech(x.nom) + '<span class="secondaire">' + ech(x.compte) + '</span></td>' +
+        '<td class="n">' + octets(v) + '</td>' +
+        '<td class="n" style="min-width:90px"><div class="piste" role="img" aria-label="' + part + ' %"><div class="rempli" style="width:' + part + '%"></div></div>' +
+        '<span class="secondaire">' + part + ' %</span></td></tr>';
+    });
+    var manquants = Number(s.statuts_manquants) || 0;
+    return '<div class="p12"><div class="carte"><h3>Sortie de données <span class="note-titre">estimation, jusqu\'au ' + ech(dateCourte(s.dernier_jour)) + '</span></h3>' +
+      '<div class="cadre"><table><thead><tr><th>Source</th><th class="n">Ce mois</th><th class="n">Part</th></tr></thead><tbody>' +
+      lignes.join('') +
+      '<tr class="total"><td>Total<span class="secondaire">' + octets(m.parJour) + ' par jour en moyenne, sur ' + nb(m.jours) + ' ' + accord(m.jours, 'jour', 'jours') + '</span></td>' +
+        '<td class="n">' + octets(m.total) + '</td><td></td></tr></tbody></table></div>' +
+      '<p class="discret">⚠️ <b>C\'est un calcul, pas le relevé de Supabase.</b> Il compte les fichiers, au poids réel, une fois par personne qui les voit — ' +
+        'le téléphone garde chaque image. Il ne compte pas les réponses de la base (du texte, quelques Ko par écran), les profils ouverts en entier, ' +
+        'ni les images qu\'un téléphone a effacées puis retéléchargées. Le fil est la ligne la plus incertaine : on sait qui pouvait voir une publication, pas qui l\'a vue. ' +
+        'Supabase compte d\'une date de facturation à la suivante, pas du 1er au 30. ' +
+        (manquants ? 'Les vues de statuts ne se gardent que deux jours : elles manquent à ' + nb(manquants) + ' ' + accord(manquants, 'jour', 'jours') + ' de ce mois. ' : '') +
+        '<a href="' + LIEN_USAGE + '" target="_blank" rel="noopener">Le vrai chiffre, sur Supabase</a>.</p>' +
+    '</div></div>';
+  }
+
+  /* ---------------------------------------------------------------------
+     Page — Coûts et bénéfice (0151)
+     --------------------------------------------------------------------- */
+  var NOMS_PALIERS = { vip: 'Abonnements VIP', premium: 'Abonnements Premium' };
+  var NOMS_MESURES = { images: 'image', codes_whatsapp: 'code', emails: 'e-mail' };
+  var moisCouts = null;
+
+  function nomDuMois(iso) {
+    var d = new Date(String(iso).slice(0, 7) + '-01T00:00:00Z');
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function rendreCouts(c) {
+    var recettes = Number(c.total_abonnements) + Number(c.total_annonces);
+    var charges = Number(c.total_charges);
+    var resultat = recettes - charges;
+    var premium = Number(c.prix_premium) || 4000;
+    var manque = resultat < 0 ? Math.ceil(-resultat / premium) : 0;
+
+    var douze = c.douze_mois || [];
+    var html = '<div class="grille">' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Recettes du mois</span><span class="valeur">' + nb(Math.round(recettes)) + '<small>F</small></span>' +
+        '<span class="tendance">Abonnements et annonces</span></div></div>' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Charges du mois</span><span class="valeur">' + nb(Math.round(charges)) + '<small>F</small></span>' +
+        '<span class="tendance">Fixes, à l\'unité et commissions</span></div></div>' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Résultat du mois</span><span class="valeur" style="color:var(' + (resultat >= 0 ? '--calme' : '--critique') + ')">' +
+        (resultat >= 0 ? '+' : '−') + nb(Math.abs(Math.round(resultat))) + '<small>F</small></span>' +
+        verdict(resultat >= 0 ? 'calme' : 'critique', resultat >= 0 ? 'Bénéficiaire' : 'Déficitaire') + '</div></div>' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Point d\'équilibre</span><span class="valeur">' + (manque ? nb(manque) : '✓') +
+        '<small>' + (manque ? accord(manque, 'Premium de plus', 'Premium de plus') : 'atteint') + '</small></span>' +
+        '<span class="tendance">' + (manque ? 'Il manque ' + nb(manque) + ' ' + accord(manque, 'abonnement Premium', 'abonnements Premium') + ' à ' + nb(premium) + ' F'
+          : 'Les recettes couvrent les charges') + '</span></div></div>' +
+
+      '<div class="p8"><div class="carte"><h3>Recettes et charges, sur 12 mois</h3>' +
+        courbe({
+          titre: 'Recettes et charges sur douze mois', aire: false,
+          etiquettes: douze.map(function (m) { return new Date(m.mois + 'T00:00:00Z').toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' }); }),
+          formatY: function (v) { return v >= 1000 ? nb(v / 1000) + ' k' : nb(v); }, formatV: fcfa,
+          series: [
+            { nom: 'Recettes', valeurs: douze.map(function (m) { return Number(m.recettes); }), teinte: '--calme' },
+            { nom: 'Charges', valeurs: douze.map(function (m) { return Number(m.charges); }), teinte: '--accent' }
+          ],
+          note: '⚠️ Les charges des mois passés sont calculées aux prix d\'aujourd\'hui : la liste des charges ne garde pas d\'historique.'
+        }) + '</div></div>' +
+
+      '<div class="p4"><div class="carte"><h3>Forfait Supabase <span class="note-titre">' + ech(PLAFONDS.nom) + '</span></h3><div class="pile">' +
+        jaugeSur('Base de données', Number(c.taille_base), PLAFONDS.base, octets(c.taille_base), octets(PLAFONDS.base), 'mesuré par la base') +
+        jaugeSur('Stockage des fichiers', Number(c.taille_stockage), PLAFONDS.stockage, octets(c.taille_stockage), octets(PLAFONDS.stockage), 'mesuré par la base') +
+        (function () {
+          var m = sortieDuMois(c.sortie);
+          return m.jours
+            ? jaugeSur('Sortie de données', m.projection, PLAFONDS.sortie, '≈ ' + octets(m.projection), octets(PLAFONDS.sortie),
+                'estimée, projetée sur le mois · <a href="' + LIEN_USAGE + '" target="_blank" rel="noopener">le vrai chiffre</a>')
+            : '<div class="jauge"><div class="haut"><span>Sortie de données</span><b>—</b></div><div class="bas">Pas encore de jour complet ce mois-ci.</div></div>';
+        })() +
+      '</div></div></div>';
+
+    // Les recettes
+    var lignesRecettes = (c.abonnements || []).map(function (a) {
+      return '<tr><td>' + ech(NOMS_PALIERS[a.palier] || a.palier) + '<span class="secondaire">' + nb(a.nombre) + ' ' +
+        accord(Number(a.nombre), 'paiement', 'paiements') + (Number(a.promo) > 0 ? ', dont ' + nb(a.promo) + ' à moitié prix' : '') +
+        '</span></td><td class="n">' + fcfa(a.montant) + '</td></tr>';
+    }).concat((c.annonces || []).map(function (a) {
+      return '<tr><td>Annonce · ' + ech(a.annonceur) + '<span class="secondaire">' + ech(a.ville + (a.commune ? ' · ' + a.commune : '')) +
+        ', du ' + ech(dateCourte(a.debut)) + ' au ' + ech(dateCourte(a.fin)) + '</span></td><td class="n">' + fcfa(a.prix) + '</td></tr>';
+    }));
+    html += '<div class="p6"><div class="carte"><h3>Recettes du mois</h3><div class="cadre"><table><tbody>' +
+      (lignesRecettes.join('') || '<tr><td colspan="2" class="discret">Aucune recette ce mois-ci. Tant que l\'encaissement n\'est pas ouvert, seules les annonces vendues apparaissent ici.</td></tr>') +
+      '<tr class="total"><td>Total</td><td class="n">' + fcfa(recettes) + '</td></tr></tbody></table></div></div></div>';
+
+    // Les charges, modifiables
+    var lignesCharges = (c.charges || []).map(function (ch) {
+      var volume = ch.genre === 'unite'
+        ? nb(ch.volume) + ' ' + (NOMS_MESURES[ch.mesure] || '') + (Number(ch.volume) > 1 ? 's' : '') + '<span class="secondaire">mesuré</span>'
+        : '<span class="discret">par mois</span>';
+      return '<tr data-charge="' + ech(ch.id) + '">' +
+        '<td><input class="poste" id="poste-' + ech(ch.id) + '" data-champ="poste" value="' + ech(ch.poste) + '" maxlength="80" aria-label="Nom du poste"></td>' +
+        '<td class="n"><input class="prix" id="prix-' + ech(ch.id) + '" data-champ="prix" type="number" min="0" step="' + (ch.genre === 'fixe' ? 250 : 0.1) +
+          '" value="' + ech(ch.prix) + '" aria-label="Prix"><span class="secondaire">' + (ch.genre === 'fixe' ? 'F par mois' : 'F par ' + (NOMS_MESURES[ch.mesure] || 'unité')) + '</span></td>' +
+        '<td class="n">' + volume + '</td><td class="n">' + fcfa(ch.montant) + '</td>' +
+        '<td class="n"><button type="button" class="sobre petit" data-action="retirer-charge" data-nom="' + ech(ch.poste) + '" aria-label="Retirer ' + ech(ch.poste) + '">✕</button></td></tr>';
+    });
+    lignesCharges.push('<tr><td>Commissions d\'encaissement<span class="secondaire">relevées sur chaque paiement</span></td><td></td><td></td><td class="n">' +
+      fcfa(c.commissions) + '</td><td></td></tr>');
+    html += '<div class="p6"><div class="carte"><h3>Charges du mois <span class="note-titre">Les prix se modifient ici</span></h3>' +
+      '<div class="cadre"><table><thead><tr><th>Poste</th><th class="n">Prix</th><th class="n">Volume</th><th class="n">Montant</th><th></th></tr></thead><tbody>' +
+      lignesCharges.join('') + '<tr class="total"><td>Total</td><td></td><td></td><td class="n">' + fcfa(charges) + '</td><td></td></tr></tbody></table></div>' +
+      '<form class="formulaire-charge" id="formCharge">' +
+        '<label for="chPoste">Nouvelle charge<input id="chPoste" maxlength="80" placeholder="Ex. : loyer du bureau"></label>' +
+        '<label class="court" for="chGenre">Type<select id="chGenre"><option value="fixe">Fixe, par mois</option><option value="unite">À l\'unité</option></select></label>' +
+        '<label class="court" for="chMesure" hidden id="chMesureBloc">Compte<select id="chMesure"><option value="images">Images analysées</option><option value="codes_whatsapp">Codes WhatsApp</option><option value="emails">E-mails</option></select></label>' +
+        '<label class="court" for="chPrix">Prix (F)<input id="chPrix" type="number" min="0" step="0.1" value="0"></label>' +
+        '<button type="submit">Ajouter</button></form></div></div>' +
+      blocSortie(c.sortie) +
+    '</div>';
+    return html;
+  }
+
+  async function chargerCouts() {
+    try {
+      var r = await sb.rpc('tableau_couts', moisCouts ? { p_mois: moisCouts } : {});
+      if (r.error) {
+        poserEtat('etatCouts', 'critique', r.error.code === '42501' ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
+        return;
+      }
+      var c = r.data;
+      // Le choix du mois : les douze derniers, le plus récent en premier.
+      var choix = (c.douze_mois || []).slice().reverse();
+      $('moisCouts').innerHTML = choix.map(function (m) {
+        var valeur = String(m.mois).slice(0, 10);
+        return '<option value="' + valeur + '"' + (String(m.mois).slice(0, 7) === c.mois ? ' selected' : '') + '>' + ech(nomDuMois(m.mois)) + '</option>';
+      }).join('');
+      courbes = {};
+      $('contenuCouts').innerHTML = rendreCouts(c);
+      activerCourbes($('contenuCouts'));
+    } catch (cause) {
+      poserEtat('etatCouts', 'critique', String(cause));
+    } finally {
+      chargesOnglets.couts = true;
+    }
+  }
+
+  $('moisCouts').addEventListener('change', function () { moisCouts = $('moisCouts').value; chargerCouts(); });
+
+  // Un prix ou un nom modifié part au moment où l'on quitte le champ.
+  $('contenuCouts').addEventListener('change', async function (e) {
+    var champ = e.target.closest('[data-champ]');
+    if (!champ) return;
+    var ligne = champ.closest('[data-charge]');
+    var poste = ligne.querySelector('[data-champ="poste"]').value.trim();
+    var prix = parseFloat(ligne.querySelector('[data-champ="prix"]').value);
+    if (!poste || isNaN(prix) || prix < 0) {
+      poserEtat('etatCouts', 'critique', 'Le nom ne peut pas être vide, et le prix doit être un nombre positif.');
+      return;
+    }
+    var r = await sb.rpc('modifier_charge', { p_id: ligne.getAttribute('data-charge'), p_poste: poste, p_prix: prix });
+    if (r.error) { poserEtat('etatCouts', 'critique', expliquerErreur(r.error.message)); return; }
+    poserEtat('etatCouts', 'calme', 'Charge enregistrée.');
+    chargerCouts();
+  });
+
+  $('contenuCouts').addEventListener('change', function (e) {
+    if (e.target.id !== 'chGenre') return;
+    $('chMesureBloc').hidden = e.target.value !== 'unite';
+  });
+
+  $('contenuCouts').addEventListener('submit', async function (e) {
+    if (e.target.id !== 'formCharge') return;
+    e.preventDefault();
+    var poste = $('chPoste').value.trim();
+    var genre = $('chGenre').value;
+    var prix = parseFloat($('chPrix').value);
+    if (!poste || isNaN(prix) || prix < 0) {
+      poserEtat('etatCouts', 'critique', 'Donne un nom à la charge et un prix positif.');
+      return;
+    }
+    var r = await sb.rpc('ajouter_charge', {
+      p_poste: poste, p_genre: genre, p_prix: prix, p_mesure: genre === 'unite' ? $('chMesure').value : null
+    });
+    if (r.error) { poserEtat('etatCouts', 'critique', expliquerErreur(r.error.message)); return; }
+    poserEtat('etatCouts', 'calme', 'Charge ajoutée.');
+    chargerCouts();
+  });
+
+  $('contenuCouts').addEventListener('click', async function (e) {
+    var bouton = e.target.closest('[data-action="retirer-charge"]');
+    if (!bouton) return;
+    var ok = await confirmer('Retirer cette charge ?',
+      '« ' + bouton.getAttribute('data-nom') + ' » ne comptera plus dans le résultat, ni pour ce mois ni pour les mois passés.',
+      'Retirer', false);
+    if (!ok) return;
+    var r = await sb.rpc('retirer_charge', { p_id: bouton.closest('[data-charge]').getAttribute('data-charge') });
+    if (r.error) { poserEtat('etatCouts', 'critique', expliquerErreur(r.error.message)); return; }
+    poserEtat('etatCouts', 'calme', 'Charge retirée.');
+    chargerCouts();
+  });
+
+
+  /* ---------------------------------------------------------------------
+     Page — Serveurs (0151)
+     --------------------------------------------------------------------- */
+
+  /** Une barre de disponibilité : un signe dans le titre, jamais la couleur seule. */
+  function barre(b, parJour) {
+    var genre, mot, quand;
+    if (parJour) {
+      var total = Number(b.total), bons = Number(b.ok);
+      quand = new Date(b.quand).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      if (total === 0) { genre = 'vide'; mot = 'aucune sonde'; }
+      else if (bons === total) { genre = ''; mot = 'a toujours répondu'; }
+      else if (bons / total >= 0.5) { genre = 'alerte'; mot = (total - bons) + ' sur ' + total + ' sans réponse'; }
+      else { genre = 'critique'; mot = (total - bons) + ' sur ' + total + ' sans réponse'; }
+    } else {
+      var d = new Date(b.quand);
+      quand = d.getHours() + ' h ' + String(d.getMinutes()).padStart(2, '0');
+      if (!b.ok) { genre = 'critique'; mot = 'ne répondait pas' + (b.statut ? ' (' + b.statut + ')' : ''); }
+      else if (Number(b.ms) > 2000) { genre = 'alerte'; mot = 'lent : ' + nb(b.ms) + ' ms'; }
+      else { genre = ''; mot = 'a répondu en ' + nb(b.ms) + ' ms'; }
+    }
+    return '<i class="' + genre + '" title="' + ech(quand + ' · ' + mot) + '"></i>';
+  }
+
+  function rendreServeurs(s, series) {
+    var parJour = periodeJours > 1;
+    var sondes = s.sondes || [];
+    var enPanne = sondes.filter(function (x) { return x.dernier && !x.dernier.ok; });
+    var ageSonde = s.derniere_sonde ? (Date.now() - new Date(s.derniere_sonde).getTime()) / 60000 : Infinity;
+    var taches = s.taches || [];
+    var echecs = taches.reduce(function (t, x) { return t + Number(x.echecs_7j || 0); }, 0);
+    var executions = taches.reduce(function (t, x) { return t + Number(x.executions_7j || 0); }, 0);
+    var dispos = sondes.map(function (x) { return Number(x.dispo); }).filter(function (v) { return !isNaN(v); });
+    var dispoMoyenne = dispos.length ? dispos.reduce(function (a, v) { return a + v; }, 0) / dispos.length : null;
+
+    /*
+      Le bandeau dit d'abord ce qui empêche de croire le reste : des sondes
+      qui ne tournent plus rendent toutes les barres vertes MUETTES, pas
+      rassurantes. Plus de 45 minutes sans sonde, c'est ce qu'on dit en premier.
+    */
+    var etatGeneral, titre;
+    if (ageSonde > 45) { etatGeneral = 'critique'; titre = s.derniere_sonde ? 'Les sondes ne tournent plus depuis ' + ilYA(s.derniere_sonde).replace('il y a ', '') : "Les sondes n'ont encore jamais tourné"; }
+    else if (enPanne.length) { etatGeneral = 'critique'; titre = enPanne.length + ' ' + accord(enPanne.length, 'service ne répond pas', 'services ne répondent pas') + ' : ' + enPanne.map(function (x) { return x.nom; }).join(', '); }
+    else if (echecs > 0) { etatGeneral = 'alerte'; titre = echecs + ' ' + accord(echecs, 'tâche planifiée a échoué', 'tâches planifiées ont échoué') + ' sur 7 jours'; }
+    else { etatGeneral = 'calme'; titre = 'Tout fonctionne'; }
+
+    var html = '<div class="bandeau ' + etatGeneral + '"><span class="rond" aria-hidden="true"></span><div><b>' + ech(titre) + '</b><br><span>' +
+      (s.derniere_sonde ? 'Dernière sonde ' + ilYA(s.derniere_sonde) + ' · une tournée toutes les 30 minutes' : 'Aucune sonde enregistrée') +
+      (dispoMoyenne !== null ? ' · disponibilité moyenne sur la période : ' + dispoMoyenne.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' %' : '') +
+      '</span></div></div>';
+
+    // Les sondes, groupées
+    var groupes = [];
+    sondes.forEach(function (x) { if (groupes.indexOf(x.groupe) < 0) groupes.push(x.groupe); });
+    var corpsSondes = groupes.map(function (gr) {
+      return '<div class="groupe-sondes">' + ech(gr) + '</div>' + sondes.filter(function (x) { return x.groupe === gr; }).map(function (x) {
+        var barres = (x.barres || []).map(function (b) { return barre(b, parJour); });
+        if (!parJour) { while (barres.length < 48) barres.unshift('<i class="vide" title="Pas encore de sonde"></i>'); }
+        return '<div class="sonde"><div class="qui"><b>' + ech(x.nom) + '</b><span>' + ech(x.description) + '</span></div>' +
+          '<div class="barres" role="img" aria-label="Disponibilité de ' + ech(x.nom) + '">' + barres.join('') + '</div>' +
+          '<div class="chiffre"><b>' + (x.dispo === null || x.dispo === undefined ? '—' : Number(x.dispo).toLocaleString('fr-FR') + ' %') + '</b><span>répond</span></div>' +
+          '<div class="chiffre latence"><b>' + (x.ms === null || x.ms === undefined ? '—' : nb(Math.round(x.ms)) + ' ms') + '</b><span>médiane</span></div></div>';
+      }).join('');
+    }).join('');
+
+    var f = s.files || {};
+    var base = s.base || {};
+    html += '<div class="grille">' +
+      '<div class="p8"><div class="carte"><h3>Sondes <span class="note-titre">' +
+        (parJour ? 'Une barre par jour · ' + periodeJours + ' derniers jours' : 'Une barre toutes les 30 minutes · 24 dernières heures') +
+        '</span></h3>' + corpsSondes +
+        '<p class="discret" style="margin-top:8px">Une adresse « répond » si elle rend une réponse sous 500 en moins de 10 secondes. Un refus (401) compte : une fonction protégée doit refuser un inconnu, et c\'est ce refus qui prouve qu\'elle tourne.</p>' +
+      '</div></div>' +
+
+      '<div class="p4"><div class="carte"><h3>Files d\'attente</h3><div class="pile">' +
+        '<div class="tuile"><span class="nom">Notifications à envoyer</span><span class="valeur">' + nb(f.notifications) + '</span>' +
+          (Number(f.notifications_en_echec) > 0 ? verdict('alerte', nb(f.notifications_en_echec) + ' en échec') : verdict('calme', 'Vidée chaque minute')) + '</div>' +
+        '<div class="tuile"><span class="nom">Fichiers à effacer</span><span class="valeur">' + nb(f.fichiers) + '</span>' +
+          '<span class="tendance">Passage chaque nuit à 5 h 09</span></div>' +
+        '<div class="tuile"><span class="nom">Images en attente d\'analyse</span><span class="valeur">' + nb(f.moderation) + '</span></div>' +
+      '</div></div></div>' +
+
+      '<div class="p8"><div class="carte"><h3>Tâches planifiées <span class="note-titre">' + nb(echecs) + ' ' + accord(echecs, 'échec', 'échecs') +
+        ' sur ' + nb(executions) + ' exécutions en 7 jours</span></h3><div class="cadre"><table><thead><tr><th>Tâche</th><th>Rythme</th><th>Dernière exécution</th><th class="n">Durée</th><th>État</th></tr></thead><tbody>' +
+        taches.map(function (t) {
+          var der = t.derniere || {};
+          var duree = der.debut && der.fin ? Math.max(0, new Date(der.fin) - new Date(der.debut)) : null;
+          var etat = !t.actif ? verdict('alerte', 'Arrêtée')
+            : der.statut && der.statut !== 'succeeded' ? verdict('critique', 'Échec')
+            : Number(t.echecs_7j) > 0 ? verdict('alerte', nb(t.echecs_7j) + ' ' + accord(Number(t.echecs_7j), 'échec', 'échecs') + ' sur 7 j')
+            : der.debut ? verdict('calme', 'Réussie') : '<span class="discret">Jamais lancée</span>';
+          return '<tr><td><code>' + ech(t.nom) + '</code>' + (der.statut && der.statut !== 'succeeded' && der.message ? '<span class="secondaire">' + ech(der.message) + '</span>' : '') + '</td>' +
+            '<td>' + ech(rythme(t.rythme)) + '</td><td>' + (der.debut ? ech(ilYA(der.debut)) : '—') + '</td>' +
+            '<td class="n">' + (duree === null ? '—' : duree >= 1000 ? (duree / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' s' : nb(duree) + ' ms') + '</td>' +
+            '<td>' + etat + '</td></tr>';
+        }).join('') + '</tbody></table></div></div></div>' +
+
+      '<div class="p4"><div class="carte"><h3>La base</h3><div class="pile">' +
+        jaugeSur('Connexions ouvertes', Number(base.connexions), Number(base.max_connexions), nb(base.connexions), nb(base.max_connexions), '') +
+        jaugeSur('Taille', Number(base.taille), PLAFONDS.base, octets(base.taille), octets(PLAFONDS.base), PLAFONDS.nom) +
+        jaugeSur('Stockage', Number(base.stockage), PLAFONDS.stockage, octets(base.stockage), octets(PLAFONDS.stockage), nb(base.fichiers) + ' fichiers') +
+        '<div class="jauge"><div class="haut"><span>Lectures servies par le cache</span><b>' + (base.cache === null ? '—' : Number(base.cache).toLocaleString('fr-FR') + ' %') + '</b></div>' +
+          '<div class="bas">' + (Number(base.cache) >= 99 ? 'Au-dessus de 99 % : la mémoire suffit.' : 'Sous 99 % : la base lit souvent le disque.') + '</div></div>' +
+        '<div><div class="discret" style="margin-bottom:4px">Requêtes les plus lourdes</div><div class="cadre"><table><tbody>' +
+          (base.requetes || []).map(function (q) {
+            return '<tr><td><code title="' + ech(q.requete) + '">' + ech(String(q.requete).slice(0, 44)) + '</code><span class="secondaire">' + nb(q.appels) + ' appels</span></td>' +
+              '<td class="n">' + Number(q.moyenne_ms).toLocaleString('fr-FR') + ' ms</td></tr>';
+          }).join('') + '</tbody></table></div></div>' +
+      '</div></div></div>' +
+
+      '<div class="p12"><div class="carte"><h3>Plantages de l\'application <span class="note-titre">erreurs distinctes vues, ' +
+        (parJour ? 'par jour' : 'par heure') + '</span></h3>' +
+        courbe({
+          titre: 'Plantages', hauteur: 150, largeur: 1280, etiquettes: series.map(function (p) { return p.etiquette; }),
+          series: [{ nom: 'Erreurs distinctes', valeurs: series.map(function (p) { return Number(p.plantages) || 0; }), teinte: '--critique' }]
+        }) +
+        '<button type="button" class="sobre petit" data-va-vers="plantages" style="margin-top:8px">Voir les plantages</button></div></div>' +
+    '</div>';
+    return html;
+  }
+
+  async function chargerServeurs() {
+    try {
+      var r = await Promise.all([
+        sb.rpc('tableau_serveurs', { p_jours: periodeJours }),
+        sb.rpc('tableau_courbes', { p_jours: periodeJours })
+      ]);
+      var enPanne = r.find(function (x) { return x.error; });
+      if (enPanne) {
+        poserEtat('etatServeurs', 'critique', enPanne.error.code === '42501' ? "Ce compte n'est pas modérateur." : expliquerErreur(enPanne.error.message));
+        return;
+      }
+      courbes = {};
+      $('contenuServeurs').innerHTML = rendreServeurs(r[0].data, r[1].data || []);
+      activerCourbes($('contenuServeurs'));
+    } catch (cause) {
+      poserEtat('etatServeurs', 'critique', String(cause));
+    } finally {
+      chargesOnglets.serveurs = true;
+    }
+  }
+
+  // Les raccourcis « Voir … » des pages neuves cliquent l'onglet, comme ceux de la vue d'ensemble.
+  ['contenuServeurs', 'contenuCouts'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) {
+      var cible = e.target.closest ? e.target.closest('[data-va-vers]') : null;
+      if (!cible) return;
+      var onglet = document.querySelector('.onglet[data-onglet="' + cible.getAttribute('data-va-vers') + '"]');
+      if (onglet) { onglet.click(); window.scrollTo(0, 0); }
+    });
+  });
+
+  /* ---------------------------------------------------------------------
+     La vue d'ensemble, recomposée — les quatre questions d'avant sont
+     gardées, entourées de tuiles, d'une courbe et de deux résumés.
+     --------------------------------------------------------------------- */
+  function composerEnsemble(sante, usage, densite, argent, series, serveurs, couts) {
+    var html = '<div class="grille">';
+
+    // Le résumé des serveurs et du mois
+    var sondes = (serveurs && serveurs.sondes) || [];
+    var enPanne = sondes.filter(function (x) { return x.dernier && !x.dernier.ok; }).length;
+    var echecs = ((serveurs && serveurs.taches) || []).reduce(function (t, x) { return t + Number(x.echecs_7j || 0); }, 0);
+    var ageSonde = serveurs && serveurs.derniere_sonde ? (Date.now() - new Date(serveurs.derniere_sonde).getTime()) / 60000 : Infinity;
+    var etatSrv = ageSonde > 45 || enPanne ? 'critique' : echecs ? 'alerte' : 'calme';
+    var motSrv = ageSonde > 45 ? 'Les sondes ne tournent plus' : enPanne ? enPanne + ' ' + accord(enPanne, 'service en panne', 'services en panne')
+      : echecs ? echecs + ' ' + accord(echecs, 'tâche en échec', 'tâches en échec') : 'Tout fonctionne';
+
+    var recettes = couts ? Number(couts.total_abonnements) + Number(couts.total_annonces) : 0;
+    var charges = couts ? Number(couts.total_charges) : 0;
+    var resultat = recettes - charges;
+
+    html += '<div class="p8">' + blocSante(sante) + '</div>' +
+      '<div class="p4">' +
+        '<div class="bandeau ' + etatSrv + '"><span class="rond" aria-hidden="true"></span><div><b>' + ech(motSrv) + '</b><br><span>' +
+          nb(sondes.length - enPanne) + ' sur ' + nb(sondes.length) + ' sondes répondent · ' + nb(echecs) + ' ' + accord(echecs, 'échec', 'échecs') + ' de tâche sur 7 jours</span>' +
+          '<br><button type="button" class="sobre petit" data-va-vers="serveurs" style="margin-top:6px">Voir les serveurs</button></div></div>' +
+        '<section class="carte"><h3>Ce mois-ci</h3><div class="cadre"><table><tbody>' +
+          '<tr><td>Recettes</td><td class="n">' + fcfa(recettes) + '</td></tr>' +
+          '<tr><td>Charges</td><td class="n">' + fcfa(charges) + '</td></tr>' +
+          '<tr class="total"><td>Résultat</td><td class="n" style="color:var(' + (resultat >= 0 ? '--calme' : '--critique') + ')">' +
+            (resultat >= 0 ? '+' : '−') + fcfa(Math.abs(resultat)) + '</td></tr></tbody></table></div>' +
+          '<button type="button" class="sobre petit" data-va-vers="couts" style="margin-top:8px">Voir le détail</button></section>' +
+      '</div>';
+
+    // Les tuiles
+    var dernierJour = series.length > 1 ? series[series.length - 2] : series[0];
+    var vus = dernierJour && Number(dernierJour.decideurs) > 0 ? Number(dernierJour.decisions) / Number(dernierJour.decideurs) : null;
+    html +=
+      '<div class="p3"><div class="carte tuile"><span class="nom">Inscrits</span><span class="valeur">' + nb(usage.inscrits) + '</span>' +
+        '<span class="tendance"><b>+' + nb(usage.inscrits_7j) + '</b> sur 7 jours</span></div></div>' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Actifs sur 7 jours</span><span class="valeur">' + nb(usage.actifs_7j) + '</span>' +
+        '<span class="tendance">' + nb(usage.actifs_30j) + ' sur 30 jours</span></div></div>' +
+      /*
+        🔴 Le chiffre jamais mesuré qui décide du forfait Supabase (PRODUIT.md) :
+        combien de profils une personne regarde par jour. On le lit ici par
+        les DÉCISIONS de la veille — passer, aimer, coup de cœur — rapportées à
+        ceux qui ont décidé. Un profil décidé est un profil vu en entier.
+      */
+      '<div class="p3"><div class="carte tuile"><span class="nom">Profils décidés, par personne et par jour</span><span class="valeur">' +
+        (vus === null ? '—' : vus.toLocaleString('fr-FR', { maximumFractionDigits: 1 })) + '</span>' +
+        '<span class="tendance">' + (vus === null ? 'Personne n\'a décidé hier' : 'Hier · décide du forfait Supabase') + '</span>' +
+        '<span class="etiquette-neuve">Jamais mesuré avant</span></div></div>' +
+      '<div class="p3"><div class="carte tuile"><span class="nom">Matchs sur 7 jours</span><span class="valeur">' + nb(usage.matchs_7j) + '</span>' +
+        '<span class="tendance">' + nb(usage.messages_7j) + ' messages sur 7 jours</span></div></div>';
+
+    // La courbe
+    var avecActifs = series.length > 0 && series.every(function (p) { return p.actifs !== null && p.actifs !== undefined; });
+    var lesSeries = [
+      { nom: 'Inscriptions', valeurs: series.map(function (p) { return Number(p.nouveaux) || 0; }), teinte: '--accent-2' },
+      { nom: 'Décisions', valeurs: series.map(function (p) { return Number(p.decisions) || 0; }), teinte: '--accent' },
+      { nom: 'Messages', valeurs: series.map(function (p) { return Number(p.messages) || 0; }), teinte: '--calme' }
+    ];
+    if (avecActifs) lesSeries.unshift({ nom: 'Actifs', valeurs: series.map(function (p) { return Number(p.actifs) || 0; }), teinte: '--alerte' });
+    html += '<div class="p8"><div class="carte"><h3>L\'activité <span class="note-titre">' +
+      (periodeJours === 1 ? '24 heures, par heure' : periodeJours + ' jours, par jour') + '</span></h3>' +
+      courbe({
+        titre: "L'activité", etiquettes: series.map(function (p) { return p.etiquette; }), series: lesSeries,
+        note: avecActifs ? '' : 'Les actifs par jour s\'accumulent depuis le 24 septembre 2026 : la base ne gardait que la dernière activité de chacun. Ils apparaîtront ici quand la période en sera couverte.'
+      }) + '</div></div>';
+
+    html += '<div class="p4">' + blocDensite(densite) + '</div>';
+    html += '<div class="p6">' + blocUsage(usage) + '</div>';
+    html += '<div class="p6">' + blocArgent(argent) + '</div>';
+    return html + '</div>';
+  }
+
+  /* ---------------------------------------------------------------------
      Les onglets — bascule et chargement paresseux
      --------------------------------------------------------------------- */
   var chargesOnglets = {};
@@ -2664,7 +3438,9 @@
     suspects: chargerSuspects,
     plantages: chargerPlantages,
     fichiers: chargerFichiers,
-    annonces: chargerAnnonces
+    annonces: chargerAnnonces,
+    couts: chargerCouts,
+    serveurs: chargerServeurs
   };
 
   function reinitialiserOnglets() {
@@ -2675,6 +3451,7 @@
     document.querySelectorAll('[data-panneau]').forEach(function (p) {
       p.hidden = p.getAttribute('data-panneau') !== 'ensemble';
     });
+    poserTitre('ensemble');
   }
 
   document.querySelectorAll('.onglet').forEach(function (bouton) {
@@ -2684,6 +3461,9 @@
       document.querySelectorAll('[data-panneau]').forEach(function (p) {
         p.hidden = p.getAttribute('data-panneau') !== nom;
       });
+      poserTitre(nom);
+      fermerMenu();
+      window.scrollTo(0, 0);
       if (nom !== 'ensemble' && !chargesOnglets[nom]) CHARGEURS_ONGLET[nom]();
     });
   });
@@ -2738,10 +3518,18 @@
           en restant vrai sur le seul point qui compte, à savoir qu'il y en a
           beaucoup trop.
         */
-        sb.rpc('messages_des_inscrits', { p_traite: false, p_limite: 200 })
+        sb.rpc('messages_des_inscrits', { p_traite: false, p_limite: 200 }),
+        /*
+          Refonte du 24 septembre 2026 : la courbe, et les deux résumés des
+          pages neuves. Les deux derniers ne bloquent pas la page s'ils
+          manquent — la vue d'ensemble reste lisible sans eux.
+        */
+        sb.rpc('tableau_courbes', { p_jours: periodeJours }),
+        sb.rpc('tableau_serveurs', { p_jours: 1 }),
+        sb.rpc('tableau_couts')
       ]);
 
-      var enPanne = r.find(function (x) { return x.error; });
+      var enPanne = r.slice(0, 6).find(function (x) { return x.error; });
       if (enPanne) {
         if (enPanne.error.code === '42501') {
           montrer('Accès refusé', "Ce compte n'est pas modérateur (is_admin).");
@@ -2760,18 +3548,18 @@
         messages_en_attente: (r[4].data || []).length,
       });
 
-      $('contenu').innerHTML =
-        blocSante(sante) +
-        blocUsage(r[1].data[0]) +
-        blocDensite(r[2].data) +
-        blocArgent(r[3].data[0]);
+      courbes = {};
+      $('contenu').innerHTML = composerEnsemble(sante, r[1].data[0], r[2].data, r[3].data[0],
+        r[5].data || [], r[6].error ? null : r[6].data, r[7].error ? null : r[7].data);
+      activerCourbes($('contenu'));
+      poserComptes(sante);
 
-      $('horodatage').textContent = 'à ' + new Date().toLocaleTimeString('fr-FR');
+      $('horodatage').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     } catch (cause) {
       montrer('Réseau', String(cause));
     } finally {
       $('actualiser').disabled = false;
-      $('actualiser').textContent = 'Actualiser';
+      $('actualiser').textContent = '↻ Actualiser';
     }
   }
 
@@ -2868,7 +3656,10 @@
     charger();
   });
 
-  $('actualiser').addEventListener('click', charger);
+  $('actualiser').addEventListener('click', function () {
+    if (pageCourante === 'ensemble') charger();
+    else if (CHARGEURS_ONGLET[pageCourante]) CHARGEURS_ONGLET[pageCourante]();
+  });
 
   $('sortir').addEventListener('click', async function () {
     await sb.auth.signOut();
@@ -2881,8 +3672,16 @@
       le suivant serait la même faute que garder un lien signé après un
       changement de compte (règle déjà écrite pour les photos).
     */
-    ['listeSignalements', 'listeBadges', 'listeSuspects', 'listePlantages', 'contenuFichiers']
+    /*
+      ⚠️ Messages, Bannis et Annonces manquaient à cette liste jusqu'à la
+      refonte du 24 septembre 2026 : leurs fiches restaient à l'écran pour le
+      compte suivant.
+    */
+    ['listeSignalements', 'listeMessages', 'listeBannis', 'listeBadges', 'listeSuspects', 'listePlantages',
+     'contenuFichiers', 'listeAnnonces', 'contenuCouts', 'contenuServeurs']
       .forEach(function (id) { $(id).innerHTML = ''; });
+    poserComptes({});
+    fermerMenu();
     reinitialiserOnglets();
   });
 
