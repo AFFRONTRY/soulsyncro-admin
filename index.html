@@ -1125,9 +1125,14 @@
     return Number(n).toLocaleString('fr-FR');
   }
 
+  /*
+    L'apostrophe aussi (2 octobre 2026) : tous les attributs de cette page sont
+    entre guillemets doubles, mais le premier écrit entre apostrophes ouvrirait
+    sinon une brèche sans que rien ne le signale.
+  */
   function ech(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
@@ -3716,6 +3721,38 @@
     $('bord').hidden = !oui;
   }
 
+  /*
+    La forme réelle d'une adresse (0169, 2 octobre 2026) : Gmail sans points
+    ni « + », Outlook et Hotmail sans « + ». L'application enregistre les
+    comptes sous cette forme ; sans elle ici, un modérateur qui tape
+    `jean.dupont@gmail.com` ne retrouverait plus le compte
+    `jeandupont@gmail.com`.
+
+    🔴 C'est la TROISIÈME jumelle — avec `normaliserEmail()` de
+    `src/features/auth/email.ts` et `public.adresse_canonique()` —, parce
+    qu'une page publiée à part ne peut pas importer le code de l'application.
+    `npm run verifier:adresses` découpe cette fonction jusqu'au marqueur
+    « fin normaliserEmail » et lui passe la même table de cas qu'aux deux
+    autres : ne pas renommer l'une sans l'autre.
+  */
+  function normaliserEmail(saisie) {
+    var adresse = String(saisie).trim().toLowerCase();
+    var morceaux = adresse.split('@');
+    if (morceaux.length !== 2) return adresse;
+
+    var locale = morceaux[0];
+    var domaine = morceaux[1];
+
+    if (domaine === 'gmail.com' || domaine === 'googlemail.com') {
+      return locale.split('+')[0].replace(/\./g, '') + '@gmail.com';
+    }
+    if (['outlook.com', 'outlook.fr', 'hotmail.com', 'hotmail.fr', 'live.com', 'live.fr', 'msn.com'].indexOf(domaine) !== -1) {
+      return locale.split('+')[0] + '@' + domaine;
+    }
+    return adresse;
+  }
+  // fin normaliserEmail
+
   $('formulaire').addEventListener('submit', async function (e) {
     e.preventDefault();
     $('erreur').textContent = '';
@@ -3723,7 +3760,7 @@
     $('entrer').disabled = true;
 
     var r = await sb.auth.signInWithPassword({
-      email: $('adresse').value.trim(),
+      email: normaliserEmail($('adresse').value),
       password: $('motdepasse').value,
       options: { captchaToken: jetonDefi }
     });
@@ -3764,7 +3801,7 @@
       se lirait comme une panne du tableau.
     */
     var r = await sb.auth.signInWithOtp({
-      email: $('adresseCode').value.trim(),
+      email: normaliserEmail($('adresseCode').value),
       options: { shouldCreateUser: false, captchaToken: jetonDefi }
     });
 
@@ -3790,7 +3827,7 @@
       `verifyOtp` n'accepte pas de `captchaToken`.
     */
     var r = await sb.auth.verifyOtp({
-      email: $('adresseCode').value.trim(),
+      email: normaliserEmail($('adresseCode').value),
       token: $('code').value.trim(),
       type: 'email'
     });
