@@ -706,6 +706,7 @@
       <div class="groupe"><h2>Technique</h2><ul>
         <li><button type="button" class="onglet" data-onglet="plantages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Plantages</span><span class="compte" id="compte-plantages" hidden></span></button></li>
         <li><button type="button" class="onglet" data-onglet="fichiers"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13H6zM14 3v6h6"/></svg><span>Fichiers</span></button></li>
+        <li><button type="button" class="onglet" data-onglet="maintenance"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Maintenance</span><span class="compte" id="compte-maintenance" hidden>EN COURS</span></button></li>
       </ul></div>
       <div class="groupe"><h2>Commerce</h2><ul>
         <li><button type="button" class="onglet" data-onglet="annonces"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l6 4V6L7 10zM17 9a4 4 0 0 1 0 6"/></svg><span>Annonces</span></button></li>
@@ -843,6 +844,43 @@
     </div>
     <div class="panneau-etat" id="etatFichiers"></div>
     <div id="contenuFichiers"></div>
+  </div>
+
+  <!--
+    Le mode maintenance (0172, 6 octobre 2026). Allumé, l'application montre un
+    écran de pause à tout le monde sauf aux administrateurs. Ce n'est pas un
+    verrou : la base reste ouverte, seul l'écran change.
+  -->
+  <div class="page" data-panneau="maintenance" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserMaintenance">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatMaintenance"></div>
+
+    <form class="carte" id="formMaintenance" novalidate>
+      <h2>Mode maintenance</h2>
+      <p class="reponse" id="maintenanceVerdict"></p>
+      <p class="discret">
+        Les administrateurs passent quand même, avec un bandeau qui le rappelle.
+        L'application vérifie à chaque ouverture, et toutes les minutes pendant la
+        pause : elle se rouvre d'elle-même quand tu éteins.
+      </p>
+
+      <label for="mntMessageFr">Message en français <span class="discret">(facultatif — vide : le texte de l'application)</span></label>
+      <textarea id="mntMessageFr" maxlength="300" rows="2" placeholder="On améliore l'application. Tes conversations et ton profil ne bougent pas : reviens dans un moment."></textarea>
+
+      <label for="mntMessageEn">Message en anglais <span class="discret">(facultatif)</span></label>
+      <textarea id="mntMessageEn" maxlength="300" rows="2" placeholder="We're improving the app. Your conversations and your profile are safe: come back in a little while."></textarea>
+
+      <label for="mntRetour">Retour prévu <span class="discret">(facultatif, à l'heure de cet ordinateur)</span></label>
+      <input id="mntRetour" type="datetime-local">
+
+      <div class="fiche-actions">
+        <button type="submit" id="mntBasculer">Allumer la maintenance</button>
+        <button type="button" class="sobre" id="mntEnregistrer" hidden>Enregistrer le message</button>
+      </div>
+    </form>
   </div>
 
   <!--
@@ -2449,6 +2487,88 @@
   });
 
   /* ---------------------------------------------------------------------
+     Onglet — Maintenance (0172)
+     --------------------------------------------------------------------- */
+  var maintenanceActive = false;
+
+  // `datetime-local` parle l'heure de l'ordinateur, sans fuseau : on la
+  // convertit dans les deux sens plutôt que d'envoyer une chaîne ambiguë.
+  function versChampDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var z = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) +
+      'T' + z(d.getHours()) + ':' + z(d.getMinutes());
+  }
+
+  function montrerMaintenance(m) {
+    maintenanceActive = !!m.active;
+    $('compte-maintenance').hidden = !maintenanceActive;
+    $('maintenanceVerdict').innerHTML = maintenanceActive
+      ? verdict('alerte', 'Allumée — les inscrits voient l\'écran de pause depuis le ' +
+          new Date(m.modifie_le).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + '.')
+      : verdict('calme', 'Éteinte — l\'application tourne normalement.');
+    $('mntMessageFr').value = m.message_fr || '';
+    $('mntMessageEn').value = m.message_en || '';
+    $('mntRetour').value = versChampDate(m.retour_prevu);
+    $('mntBasculer').textContent = maintenanceActive ? 'Éteindre la maintenance' : 'Allumer la maintenance';
+    $('mntBasculer').className = maintenanceActive ? '' : 'danger';
+    $('mntEnregistrer').hidden = !maintenanceActive;
+  }
+
+  async function chargerMaintenance() {
+    $('actualiserMaintenance').disabled = true;
+    try {
+      var r = await sb.rpc('maintenance_a_regler');
+      if (r.error) {
+        poserEtat('etatMaintenance', 'critique', r.error.code === '42501'
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(r.error.message));
+        return;
+      }
+      montrerMaintenance(r.data[0]);
+    } catch (cause) {
+      poserEtat('etatMaintenance', 'critique', String(cause));
+    } finally {
+      $('actualiserMaintenance').disabled = false;
+      chargesOnglets.maintenance = true;
+    }
+  }
+
+  async function reglerMaintenance(active) {
+    var retour = $('mntRetour').value;
+    $('mntBasculer').disabled = true;
+    $('mntEnregistrer').disabled = true;
+    try {
+      var r = await sb.rpc('regler_maintenance', {
+        p_active: active,
+        p_message_fr: $('mntMessageFr').value,
+        p_message_en: $('mntMessageEn').value,
+        p_retour_prevu: retour ? new Date(retour).toISOString() : null
+      });
+      if (r.error) {
+        poserEtat('etatMaintenance', 'critique', expliquerErreur(r.error.message));
+        return;
+      }
+      poserEtat('etatMaintenance', 'calme', active === maintenanceActive
+        ? 'Message enregistré.'
+        : active ? 'Maintenance allumée.' : 'Maintenance éteinte : l\'application se rouvre dans la minute.');
+      await chargerMaintenance();
+    } finally {
+      $('mntBasculer').disabled = false;
+      $('mntEnregistrer').disabled = false;
+    }
+  }
+
+  $('formMaintenance').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var allumer = !maintenanceActive;
+    if (allumer && !confirm('Allumer la maintenance ? Tous les inscrits, sauf les administrateurs, verront l\'écran de pause.')) return;
+    void reglerMaintenance(allumer);
+  });
+  $('mntEnregistrer').addEventListener('click', function () { void reglerMaintenance(true); });
+  $('actualiserMaintenance').addEventListener('click', chargerMaintenance);
+
+  /* ---------------------------------------------------------------------
      Onglet — Fichiers orphelins
      --------------------------------------------------------------------- */
   async function chargerFichiers() {
@@ -2904,6 +3024,7 @@
     suspects: { titre: 'Profils suspects', sous: 'Classés par score, avec les motifs. Aucun bannissement automatique.' },
     plantages: { titre: 'Plantages', sous: 'Groupés par empreinte : une erreur, une ligne.' },
     fichiers: { titre: 'Fichiers', sous: "La file d'effacement, vidée chaque nuit à 5 h 09." },
+    maintenance: { titre: 'Maintenance', sous: "Mettre l'application en pause, sans nouvelle compilation." },
     annonces: { titre: 'Annonces', sous: 'Vendues au forfait, à la semaine et par ville.' }
   };
   var pageCourante = 'ensemble';
@@ -3591,6 +3712,7 @@
     suspects: chargerSuspects,
     plantages: chargerPlantages,
     fichiers: chargerFichiers,
+    maintenance: chargerMaintenance,
     annonces: chargerAnnonces,
     couts: chargerCouts,
     serveurs: chargerServeurs
@@ -3706,6 +3828,12 @@
         r[5].data || [], r[6].error ? null : r[6].data, r[7].error ? null : r[7].data);
       activerCourbes($('contenu'));
       poserComptes(sante);
+
+      // La pastille « EN COURS » se voit depuis n'importe quelle page : une
+      // maintenance oubliée allumée ferme l'application à tout le monde.
+      sb.rpc('maintenance_a_regler').then(function (m) {
+        if (!m.error && m.data && m.data[0]) $('compte-maintenance').hidden = !m.data[0].active;
+      });
 
       $('horodatage').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     } catch (cause) {
