@@ -2553,6 +2553,10 @@
         ? 'Message enregistré.'
         : active ? 'Maintenance allumée.' : 'Maintenance éteinte : l\'application se rouvre dans la minute.');
       await chargerMaintenance();
+    } catch (cause) {
+      // Sans ce `catch`, une coupure réseau réactivait le bouton sans un mot,
+      // et l'on ne savait pas si la maintenance était allumée ou non.
+      poserEtat('etatMaintenance', 'critique', String(cause));
     } finally {
       $('mntBasculer').disabled = false;
       $('mntEnregistrer').disabled = false;
@@ -2691,7 +2695,8 @@
         nb(a.touches) + ' ' + ech(accord(Number(a.touches), 'touche', 'touches')) +
         (a.video_chemin ? ' · ' + nb(a.lectures) + ' ' + ech(accord(Number(a.lectures), 'lecture', 'lectures')) : '') +
         ' <span class="discret">— 7 derniers jours : ' + nb(a.affichages_7j) + ' · ' + nb(a.touches_7j) +
-        (a.video_chemin ? ' · ' + nb(a.lectures_7j) : '') + '</span>' +
+        (a.video_chemin ? ' · ' + nb(a.lectures_7j) : '') +
+        ' · depuis le 8 octobre 2026, une personne compte une fois par jour (0174)</span>' +
       '</p>' +
       '<p class="chiffres-annonce">Forfait : ' + (a.prix_fcfa === null || a.prix_fcfa === undefined
         ? '<span class="discret">non saisi — il manquera au bénéfice du mois</span>' : fcfa(a.prix_fcfa)) + '</p>' +
