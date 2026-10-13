@@ -743,7 +743,7 @@
       <div id="contenuCouts"></div>
     </div>
 
-    <!-- Serveurs (0151) : sondes toutes les 30 minutes, tâches, base. -->
+    <!-- Serveurs (0151) : sondes toutes les 10 minutes (0183), tâches, base. -->
     <div class="page" data-panneau="serveurs" hidden>
       <div class="panneau-etat" id="etatServeurs"></div>
       <div id="contenuServeurs"></div>
@@ -3021,7 +3021,7 @@
   var PAGES = {
     ensemble: { titre: "Vue d'ensemble", sous: "Ce qui demande ton attention, puis l'état du service.", periode: true },
     couts: { titre: 'Coûts et bénéfice', sous: 'Recettes, charges et résultat du mois, en FCFA.', periode: false },
-    serveurs: { titre: 'Serveurs', sous: 'Sondes toutes les 30 minutes, tâches planifiées et santé de la base.', periode: true },
+    serveurs: { titre: 'Serveurs', sous: 'Sondes toutes les 10 minutes, tâches planifiées et santé de la base.', periode: true },
     signalements: { titre: 'Signalements', sous: 'Promesse publique : traités sous 48 heures. Google Play en attend 24.' },
     messages: { titre: 'Messages', sous: 'Ce que les inscrits écrivent à la modération.' },
     bannis: { titre: 'Bannis', sous: "Un bannissement à durée se lève de lui-même ; un définitif n'a que cet écran." },
@@ -3525,7 +3525,7 @@
     else { etatGeneral = 'calme'; titre = 'Tout fonctionne'; }
 
     var html = '<div class="bandeau ' + etatGeneral + '"><span class="rond" aria-hidden="true"></span><div><b>' + ech(titre) + '</b><br><span>' +
-      (s.derniere_sonde ? 'Dernière sonde ' + ilYA(s.derniere_sonde) + ' · une tournée toutes les 30 minutes' : 'Aucune sonde enregistrée') +
+      (s.derniere_sonde ? 'Dernière sonde ' + ilYA(s.derniere_sonde) + ' · une tournée toutes les 10 minutes' : 'Aucune sonde enregistrée') +
       (dispoMoyenne !== null ? ' · disponibilité moyenne sur la période : ' + dispoMoyenne.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' %' : '') +
       '</span></div></div>';
 
