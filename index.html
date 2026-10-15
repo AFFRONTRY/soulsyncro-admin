@@ -747,6 +747,7 @@
       </ul></div>
       <div class="groupe"><h2>Modération</h2><ul>
         <li><button type="button" class="onglet" data-onglet="signalements"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg><span>Signalements</span><span class="compte" id="compte-signalements" hidden></span></button></li>
+        <li><button type="button" class="onglet" data-onglet="images"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-8 8"/></svg><span>Images</span><span class="compte" id="compte-images" hidden></span></button></li>
         <li><button type="button" class="onglet" data-onglet="messages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/></svg><span>Messages</span><span class="compte" id="compte-messages" hidden></span></button></li>
         <li><button type="button" class="onglet" data-onglet="bannis"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8"/></svg><span>Bannis</span></button></li>
         <li><button type="button" class="onglet" data-onglet="badges"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z"/></svg><span>Badges</span><span class="compte" id="compte-badges" hidden></span></button></li>
@@ -813,6 +814,30 @@
     </div>
     <div class="panneau-etat" id="etatSignalements"></div>
     <div id="listeSignalements"></div>
+  </div>
+
+  <!--
+    Les images (0192, 15 octobre 2026). Deux files que rien ne montrait :
+    • « À relire » — le doute de l'analyse (`revue_humaine`) et l'analyse
+      ratée (`en_attente`). Cachées à tous tant qu'un humain n'a pas tranché ;
+      sans cet écran, elles l'étaient pour toujours.
+    • « Refusées » — ce que l'analyse a écarté sur trente jours, avec le nombre
+      de refus de l'auteur. Deux refus le font remonter dans Profils suspects.
+  -->
+  <div class="page" data-panneau="images" hidden>
+    <div class="panneau-tete">
+      <span class="grandit"></span>
+      <button type="button" class="sobre petit" id="actualiserImages">Actualiser</button>
+    </div>
+    <div class="panneau-etat" id="etatImages"></div>
+
+    <h2 class="question">À relire</h2>
+    <p class="discret">Personne d'autre que leur auteur ne les voit tant que tu n'as pas tranché.</p>
+    <div id="listeImagesARelire"></div>
+
+    <h2 class="question" style="margin-top:22px">Refusées par l'analyse — 30 derniers jours</h2>
+    <p class="discret">Invisibles pour tous sauf leur auteur. Si l'analyse s'est trompée, « Accepter quand même » rend l'image visible.</p>
+    <div id="listeImagesRefusees"></div>
   </div>
 
   <!--
@@ -1515,9 +1540,14 @@
    * l'application pour quelqu'un. La couleur et l'ordre disent désormais la
    * même chose — sinon le rouge arrive deuxième, et plus rien ne se lit.
    *
-   * ⚠️ Deux files n'ont pas d'onglet, et c'est voulu : les images sont déjà
-   * jugées par l'analyse automatique, et une notification en échec se rejoue
-   * toute seule. Elles se comptent, elles ne se tranchent pas ici.
+   * ⚠️ Une file n'a pas d'onglet, et c'est voulu : une notification en échec
+   * se rejoue toute seule. Elle se compte, elle ne se tranche pas ici.
+   *
+   * 🔴 **Les images en avaient un de moins, à tort, jusqu'au 15 octobre 2026
+   * (0192).** On les disait « déjà jugées par l'analyse automatique » — mais
+   * l'analyse renvoie le DOUTE à un humain, et une analyse ratée laisse
+   * l'image en attente. Le compteur s'affichait donc sans rien pour agir, et
+   * ces images restaient cachées pour toujours. Elles ont l'onglet « Images ».
    */
   function filesDeTravail(s) {
     return [
@@ -1529,7 +1559,7 @@
 
       { n: s.images_en_attente, rang: 80, etat: 'alerte',
         quoi: accord(s.images_en_attente, 'image à juger', 'images à juger'),
-        onglet: null, nom: 'images' },
+        onglet: 'images', nom: 'images' },
 
       { n: s.badges_en_attente, rang: 70, etat: 'alerte',
         quoi: accord(s.badges_en_attente, 'demande de badge', 'demandes de badge'),
@@ -2418,6 +2448,119 @@
   });
 
   /* ---------------------------------------------------------------------
+     Onglet — Images (0192)
+     --------------------------------------------------------------------- */
+  var GENRES_IMAGE = {
+    photo: 'Photo de profil',
+    publication: 'Publication',
+    statut: 'Statut',
+    message: 'Photo envoyée en message'
+  };
+
+  function enteteImage(l) {
+    return '<div class="fiche-tete"><span class="etiquette">' + ech(l.auteur_nom || 'Compte') + '</span>' +
+      '<span class="discret">' + ech(GENRES_IMAGE[l.genre] || l.genre) + '</span></div>';
+  }
+
+  function motifsImage(motifs) {
+    var liste = (motifs || []).filter(Boolean);
+    return liste.length ? '<p class="discret">Motifs : ' + ech(liste.join(', ')) + '</p>' : '';
+  }
+
+  function ficheImageARelire(l) {
+    /*
+      Le doute et la panne ne se lisent pas pareil : « l'analyse a hésité »
+      appelle un regard sur l'image, « l'analyse n'a pas eu lieu » dit
+      seulement que personne ne l'a encore jugée.
+    */
+    var pourquoi = l.statut === 'revue_humaine'
+      ? "L'analyse a hésité"
+      : "L'analyse n'a pas eu lieu (envoi interrompu)";
+    return '<div class="carte fiche">' + enteteImage(l) +
+      '<p class="discret">' + ech(pourquoi) + ' — ' + ech(ilYA(l.created_at)) + '</p>' +
+      imgTag(l.storage_path, 'photos', 'fiche-image') +
+      (l.legende ? '<p>' + ech(l.legende) + '</p>' : '') +
+      motifsImage(l.motifs) +
+      '<div class="fiche-actions">' +
+        '<button type="button" data-action="acceptee" data-genre="' + ech(l.genre) + '" data-cible="' + l.cible + '">Accepter</button>' +
+        '<button type="button" class="danger" data-action="rejetee" data-genre="' + ech(l.genre) + '" data-cible="' + l.cible + '">Refuser</button>' +
+      '</div></div>';
+  }
+
+  function ficheImageRefusee(l) {
+    var refus = Number(l.refus_du_profil) || 0;
+    return '<div class="carte fiche">' + enteteImage(l) +
+      '<p class="discret">Refusée ' + ech(ilYA(l.moderee_le)) + ' — ' +
+        (refus >= 2
+          ? '<strong>' + refus + ' images refusées en 30 jours</strong> : ce compte est dans Profils suspects'
+          : '1 image refusée en 30 jours') + '</p>' +
+      imgTag(l.storage_path, 'photos', 'fiche-image') +
+      (l.legende ? '<p>' + ech(l.legende) + '</p>' : '') +
+      motifsImage(l.motifs) +
+      '<div class="fiche-actions">' +
+        '<button type="button" class="sobre" data-action="acceptee" data-genre="' + ech(l.genre) + '" data-cible="' + l.cible + '">Accepter quand même</button>' +
+      '</div></div>';
+  }
+
+  async function chargerImages() {
+    $('actualiserImages').disabled = true;
+    try {
+      var r = await Promise.all([
+        sb.rpc('file_moderation_humaine', { p_limite: 50 }),
+        sb.rpc('images_refusees', { p_jours: 30, p_limite: 50 })
+      ]);
+      var enPanne = r[0].error || r[1].error;
+      if (enPanne) {
+        poserEtat('etatImages', 'critique', enPanne.code === '42501'
+          ? "Ce compte n'est pas modérateur." : expliquerErreur(enPanne.message));
+        return;
+      }
+      var aRelire = r[0].data || [];
+      var refusees = r[1].data || [];
+      $('listeImagesARelire').innerHTML = aRelire.length
+        ? aRelire.map(ficheImageARelire).join('')
+        : '<p class="fiche-vide">Rien à relire.</p>';
+      $('listeImagesRefusees').innerHTML = refusees.length
+        ? refusees.map(ficheImageRefusee).join('')
+        : '<p class="fiche-vide">Aucune image refusée ces 30 derniers jours.</p>';
+      await aposerImages($('listeImagesARelire'));
+      await aposerImages($('listeImagesRefusees'));
+    } catch (cause) {
+      poserEtat('etatImages', 'critique', String(cause));
+    } finally {
+      $('actualiserImages').disabled = false;
+      chargesOnglets.images = true;
+    }
+  }
+
+  async function trancherImage(e) {
+    var bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    var statut = bouton.getAttribute('data-action');
+    var fiche = bouton.closest('.fiche');
+    fiche.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+
+    var r = await sb.rpc('moderer_a_la_main', {
+      p_genre: bouton.getAttribute('data-genre'),
+      p_cible: bouton.getAttribute('data-cible'),
+      p_statut: statut
+    });
+    if (r.error) {
+      poserEtat('etatImages', 'critique', expliquerErreur(r.error.message));
+      fiche.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+      return;
+    }
+    poserEtat('etatImages', 'calme', statut === 'acceptee'
+      ? 'Image acceptée : elle est visible.' : 'Image refusée : elle reste invisible.');
+    // Les deux listes bougent ensemble : une image refusée ici passe dans « Refusées ».
+    chargerImages();
+  }
+
+  $('listeImagesARelire').addEventListener('click', trancherImage);
+  $('listeImagesRefusees').addEventListener('click', trancherImage);
+  $('actualiserImages').addEventListener('click', chargerImages);
+
+  /* ---------------------------------------------------------------------
      Onglet — Profils suspects
      --------------------------------------------------------------------- */
   function ficheSuspect(p) {
@@ -3111,6 +3254,7 @@
     couts: { titre: 'Coûts et bénéfice', sous: 'Recettes, charges et résultat du mois, en FCFA.', periode: false },
     serveurs: { titre: 'Serveurs', sous: 'Sondes toutes les 10 minutes, tâches planifiées et santé de la base.', periode: true },
     signalements: { titre: 'Signalements', sous: 'Promesse publique : traités sous 48 heures. Google Play en attend 24.' },
+    images: { titre: 'Images', sous: "Ce que l'analyse n'a pas su trancher, et ce qu'elle a refusé." },
     messages: { titre: 'Messages', sous: 'Ce que les inscrits écrivent à la modération.' },
     bannis: { titre: 'Bannis', sous: "Un bannissement à durée se lève de lui-même ; un définitif n'a que cet écran." },
     badges: { titre: 'Badges', sous: 'Comparer le selfie reçu et la photo de profil.' },
@@ -3145,7 +3289,7 @@
   /** Les pastilles de la barre latérale, depuis la santé. Zéro : rien. */
   function poserComptes(s) {
     var comptes = {
-      signalements: s.signalements_en_attente, messages: s.messages_en_attente,
+      signalements: s.signalements_en_attente, images: s.images_en_attente, messages: s.messages_en_attente,
       badges: s.badges_en_attente, suspects: s.profils_suspects, plantages: s.plantages_non_traites
     };
     Object.keys(comptes).forEach(function (nom) {
@@ -3800,6 +3944,7 @@
   var chargesOnglets = {};
   var CHARGEURS_ONGLET = {
     signalements: chargerSignalements,
+    images: chargerImages,
     messages: chargerMessages,
     bannis: chargerBannis,
     badges: chargerBadges,
@@ -4236,7 +4381,7 @@
       refonte du 24 septembre 2026 : leurs fiches restaient à l'écran pour le
       compte suivant.
     */
-    ['listeSignalements', 'listeMessages', 'listeBannis', 'listeBadges', 'listeSuspects', 'listePlantages',
+    ['listeSignalements', 'listeImagesARelire', 'listeImagesRefusees', 'listeMessages', 'listeBannis', 'listeBadges', 'listeSuspects', 'listePlantages',
      'contenuFichiers', 'listeAnnonces', 'contenuCouts', 'contenuServeurs']
       .forEach(function (id) { $(id).innerHTML = ''; });
     // Un mot de passe à moitié tapé ne reste pas à l'écran pour le compte suivant.
