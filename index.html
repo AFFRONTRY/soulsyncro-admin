@@ -525,7 +525,7 @@
   #connexion h1, #sansScript h1 { margin: 0 0 6px; font: 700 22px/1.2 "Fraunces", Georgia, serif; }
   #connexion form { display: grid; gap: 9px; margin-top: 12px; }
   #connexion #basculer { background: transparent; border: 0; color: var(--accent); text-decoration: underline; padding: 6px 0; min-height: 0; }
-  #erreur { color: var(--critique); font-weight: 600; font-size: 12px; }
+  #erreur, #mfaErreur { color: var(--critique); font-weight: 600; font-size: 12px; }
   .defi { margin-top: 12px; min-height: 65px; }
   .defi-attente { font-size: 11px; color: var(--doux); margin: 6px 0 0; }
 
@@ -679,6 +679,43 @@
   <p id="defiAttente" class="defi-attente">Contrôle anti-robot en cours…</p>
 
   <p id="erreur"></p>
+</section>
+
+<!--
+  La double vérification (audit du 15 octobre 2026, S3).
+
+  Le compte modérateur ouvre les signalements — des extraits de conversations
+  privées —, les selfies de vérification et le bouton « Bannir ». Il ne tenait
+  qu'à un mot de passe. Désormais, après le mot de passe OU le code par e-mail,
+  un code tiré d'une application d'authentification (TOTP) est exigé pour
+  entrer — tout le tableau, choisi par l'exploitant.
+
+  Deux formes du même écran : la première fois, un QR code à scanner ; ensuite,
+  le seul champ du code.
+-->
+<section id="doubleVerif" class="carte ecran-seul" hidden>
+  <h1>Double vérification</h1>
+  <div id="mfaInscription" hidden>
+    <p>Une seule fois : scanne ce code avec une application d'authentification
+       — Google Authenticator, Microsoft Authenticator… — sur ton téléphone.</p>
+    <img id="mfaQr" alt="QR code de la double vérification"
+      style="display:block;width:200px;height:200px;margin:12px auto;background:#fff;padding:8px;border-radius:8px">
+    <p class="discret">Sans appareil photo, saisis cette clé dans l'application :
+       <code id="mfaCle" style="word-break:break-all"></code></p>
+  </div>
+  <p id="mfaConsigne">Saisis le code à 6 chiffres que montre ton application d'authentification.</p>
+  <form id="formulaireMfa">
+    <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Code à 6 chiffres"
+      maxlength="6" required>
+    <button type="submit" id="mfaValider" style="width:100%;margin-top:10px">Valider</button>
+  </form>
+  <p style="margin-top:6px">
+    <button type="button" id="mfaSortir"
+      style="background:transparent;border:none;color:var(--accent);text-decoration:underline;padding:8px 0;min-height:0">
+      Se déconnecter
+    </button>
+  </p>
+  <p id="mfaErreur"></p>
 </section>
 
 <!--
@@ -3851,8 +3888,104 @@
 
   function afficherLeBord(oui) {
     $('connexion').hidden = oui;
+    $('doubleVerif').hidden = true;
     $('bord').hidden = !oui;
   }
+
+  /*
+    La porte de la double vérification, la même pour les trois entrées : mot de
+    passe, code par e-mail, et session reprise au rechargement.
+
+    ⚠️ **Le bord ne s'affiche qu'au niveau `aal2`.** Une session reprise au
+    niveau `aal1` — ouverte avant cette porte, ou dont le code n'a jamais été
+    saisi — repasse par ici : sans quoi recharger la page suffirait à la
+    contourner. La base l'exige aussi depuis `0191` (`est_moderateur()`) : cet
+    écran n'est que la façon d'y arriver.
+  */
+  var facteurMfa = null;
+
+  async function apresConnexion() {
+    $('mfaErreur').textContent = '';
+    var niveau = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (niveau.error) { $('erreur').textContent = niveau.error.message; return; }
+
+    if (niveau.data.currentLevel === 'aal2') {
+      afficherLeBord(true);
+      charger();
+      return;
+    }
+
+    $('connexion').hidden = true;
+    $('bord').hidden = true;
+    $('doubleVerif').hidden = false;
+    $('mfaCode').value = '';
+
+    var liste = await sb.auth.mfa.listFactors();
+    if (liste.error) { $('mfaErreur').textContent = liste.error.message; return; }
+
+    var verifie = (liste.data.totp || []).filter(function (f) { return f.status === 'verified'; })[0];
+    if (verifie) {
+      facteurMfa = verifie.id;
+      $('mfaInscription').hidden = true;
+      $('mfaCode').focus();
+      return;
+    }
+
+    /*
+      Première fois. Un enrôlement abandonné laisse un facteur « non vérifié »
+      qui bloquerait le suivant : on le retire avant d'en créer un neuf.
+    */
+    var abandonnes = (liste.data.all || []).filter(function (f) { return f.status === 'unverified'; });
+    for (var i = 0; i < abandonnes.length; i++) {
+      await sb.auth.mfa.unenroll({ factorId: abandonnes[i].id });
+    }
+
+    var inscription = await sb.auth.mfa.enroll({
+      factorType: 'totp',
+      issuer: 'SoulSyncro',
+      friendlyName: 'Tableau de bord'
+    });
+    if (inscription.error) { $('mfaErreur').textContent = inscription.error.message; return; }
+
+    facteurMfa = inscription.data.id;
+    $('mfaQr').src = inscription.data.totp.qr_code;
+    $('mfaCle').textContent = inscription.data.totp.secret;
+    $('mfaInscription').hidden = false;
+  }
+
+  $('formulaireMfa').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    $('mfaErreur').textContent = '';
+    if (!facteurMfa) return;
+    $('mfaValider').disabled = true;
+
+    var r = await sb.auth.mfa.challengeAndVerify({
+      factorId: facteurMfa,
+      code: $('mfaCode').value.trim()
+    });
+
+    $('mfaValider').disabled = false;
+
+    if (r.error) {
+      $('mfaErreur').textContent =
+        'Code refusé. Il change toutes les 30 secondes : saisis celui que ton application montre maintenant.';
+      return;
+    }
+
+    $('mfaCode').value = '';
+    $('mfaCle').textContent = '';
+    $('mfaQr').removeAttribute('src');
+    afficherLeBord(true);
+    charger();
+  });
+
+  $('mfaSortir').addEventListener('click', async function () {
+    await sb.auth.signOut();
+    facteurMfa = null;
+    $('mfaCle').textContent = '';
+    $('mfaQr').removeAttribute('src');
+    afficherLeBord(false);
+  });
 
   /*
     La forme réelle d'une adresse (0169, 2 octobre 2026) : Gmail sans points
@@ -3907,8 +4040,7 @@
     }
 
     $('motdepasse').value = '';
-    afficherLeBord(true);
-    charger();
+    apresConnexion();
   });
 
   $('basculer').addEventListener('click', function () {
@@ -3970,8 +4102,7 @@
     if (r.error) { $('erreur').textContent = direLErreurDAuth(r.error); return; }
 
     $('code').value = '';
-    afficherLeBord(true);
-    charger();
+    apresConnexion();
   });
 
   $('actualiser').addEventListener('click', function () {
@@ -4009,7 +4140,7 @@
     d'être utilisée, ce qui compte sur un forfait payé au mégaoctet.
   */
   sb.auth.getSession().then(function (r) {
-    if (r.data.session) { afficherLeBord(true); charger(); }
+    if (r.data.session) apresConnexion();
   });
 })();
 </script>
