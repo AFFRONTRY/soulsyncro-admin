@@ -825,19 +825,24 @@
       de refus de l'auteur. Deux refus le font remonter dans Profils suspects.
   -->
   <div class="page" data-panneau="images" hidden>
-    <div class="panneau-tete">
-      <span class="grandit"></span>
-      <button type="button" class="sobre petit" id="actualiserImages">Actualiser</button>
-    </div>
+    <!-- Pas de bouton « Actualiser » ici : celui de l'en-tête recharge déjà
+         l'onglet ouvert, et les deux se voyaient l'un sous l'autre. -->
     <div class="panneau-etat" id="etatImages"></div>
 
-    <h2 class="question">À relire</h2>
-    <p class="discret">Personne d'autre que leur auteur ne les voit tant que tu n'as pas tranché.</p>
-    <div id="listeImagesARelire"></div>
-
-    <h2 class="question" style="margin-top:22px">Refusées par l'analyse — 30 derniers jours</h2>
-    <p class="discret">Invisibles pour tous sauf leur auteur. Si l'analyse s'est trompée, « Accepter quand même » rend l'image visible.</p>
-    <div id="listeImagesRefusees"></div>
+    <!-- Côte à côte, demandé par l'exploitant le 15 octobre 2026 en regardant
+         l'onglet ; l'une sous l'autre sous 1 100 points, comme les autres p6. -->
+    <div class="grille">
+      <div class="p6">
+        <h2 class="question">À relire</h2>
+        <p class="discret">Personne d'autre que leur auteur ne les voit tant que tu n'as pas tranché.</p>
+        <div id="listeImagesARelire"></div>
+      </div>
+      <div class="p6">
+        <h2 class="question">Refusées par l'analyse — 30 derniers jours</h2>
+        <p class="discret">Invisibles pour tous sauf leur auteur. Si l'analyse s'est trompée, « Accepter quand même » rend l'image visible.</p>
+        <div id="listeImagesRefusees"></div>
+      </div>
+    </div>
   </div>
 
   <!--
@@ -2503,7 +2508,6 @@
   }
 
   async function chargerImages() {
-    $('actualiserImages').disabled = true;
     try {
       var r = await Promise.all([
         sb.rpc('file_moderation_humaine', { p_limite: 50 }),
@@ -2528,7 +2532,6 @@
     } catch (cause) {
       poserEtat('etatImages', 'critique', String(cause));
     } finally {
-      $('actualiserImages').disabled = false;
       chargesOnglets.images = true;
     }
   }
@@ -2558,7 +2561,6 @@
 
   $('listeImagesARelire').addEventListener('click', trancherImage);
   $('listeImagesRefusees').addEventListener('click', trancherImage);
-  $('actualiserImages').addEventListener('click', chargerImages);
 
   /* ---------------------------------------------------------------------
      Onglet — Profils suspects
