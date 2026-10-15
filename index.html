@@ -207,6 +207,18 @@
     font: 12px/1.5 "Cabin", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   button, input, select, textarea { font: inherit; color: inherit; }
+
+  /*
+    🔴 **Ce qui est caché reste caché, quelle que soit la mise en page**
+    *(relevé sur une capture de l'exploitant, 15 octobre 2026)*. L'attribut
+    `hidden` ne vaut qu'un `display: none` du navigateur, et la moindre règle
+    qui pose un `display` l'emporte : `#connexion form { display: grid }`
+    affichait le formulaire du code À CÔTÉ de celui du mot de passe, et
+    `button { display: inline-flex }` montrait « Valider le code » avant tout
+    envoi. Les règles `.charpente[hidden]`, `.voile[hidden]`… le corrigeaient
+    une par une ; celle-ci le règle pour toute la page.
+  */
+  [hidden] { display: none !important; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   h1, h2, h3 { text-wrap: balance; }
