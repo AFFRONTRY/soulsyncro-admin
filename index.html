@@ -748,6 +748,9 @@
       <div class="groupe"><h2>Commerce</h2><ul>
         <li><button type="button" class="onglet" data-onglet="annonces"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h3l6 4V6L7 10zM17 9a4 4 0 0 1 0 6"/></svg><span>Annonces</span></button></li>
       </ul></div>
+      <div class="groupe"><h2>Compte</h2><ul>
+        <li><button type="button" class="onglet" data-onglet="parametres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Paramètres</span></button></li>
+      </ul></div>
     </div>
     <div class="pied">
       <span id="horodatage"></span>
@@ -1011,6 +1014,42 @@
 
     <datalist id="villesConnues"></datalist>
     <div id="listeAnnonces"></div>
+  </div>
+
+  <!--
+    Paramètres du compte de modération (15 octobre 2026, demandé par
+    l'exploitant). Il entrait jusqu'ici par le seul code e-mail : un mot de
+    passe lui évite d'attendre un courriel. ⚠️ Il ne remplace pas la double
+    vérification — elle est demandée après le mot de passe comme après le code.
+  -->
+  <div class="page" data-panneau="parametres" hidden>
+    <form class="carte" id="formMotDePasse" novalidate>
+      <h2>Mot de passe</h2>
+      <p class="discret">
+        Pour entrer sans attendre de code par e-mail. Le code par e-mail reste
+        possible, et la double vérification est demandée dans les deux cas.
+        Au moins 12 caractères : c'est le compte le plus précieux de l'application.
+      </p>
+      <input type="text" autocomplete="username" id="mdpIdentifiant" hidden>
+      <label for="mdpNouveau">Nouveau mot de passe</label>
+      <input id="mdpNouveau" type="password" autocomplete="new-password" minlength="12">
+      <label for="mdpConfirmation">Le même, une seconde fois</label>
+      <input id="mdpConfirmation" type="password" autocomplete="new-password" minlength="12">
+      <div class="fiche-actions">
+        <button type="submit" id="mdpEnregistrer">Enregistrer le mot de passe</button>
+      </div>
+      <div class="panneau-etat" id="etatMotDePasse"></div>
+    </form>
+
+    <section class="carte">
+      <h2>Double vérification</h2>
+      <p class="reponse" id="etatDoubleVerif"></p>
+      <p class="discret">
+        Téléphone perdu : depuis le site de Supabase, <em>Authentication → Users</em>,
+        retire la double vérification de ce compte ; le tableau de bord en
+        proposera une nouvelle à la connexion suivante.
+      </p>
+    </section>
   </div>
   </main>
 </div>
@@ -3067,7 +3106,8 @@
     plantages: { titre: 'Plantages', sous: 'Groupés par empreinte : une erreur, une ligne.' },
     fichiers: { titre: 'Fichiers', sous: "La file d'effacement, vidée chaque nuit à 5 h 09." },
     maintenance: { titre: 'Maintenance', sous: "Mettre l'application en pause, sans nouvelle compilation." },
-    annonces: { titre: 'Annonces', sous: 'Vendues au forfait, à la semaine et par ville.' }
+    annonces: { titre: 'Annonces', sous: 'Vendues au forfait, à la semaine et par ville.' },
+    parametres: { titre: 'Paramètres', sous: 'Ton compte de modération : mot de passe et double vérification.' }
   };
   var pageCourante = 'ensemble';
 
@@ -3757,7 +3797,8 @@
     maintenance: chargerMaintenance,
     annonces: chargerAnnonces,
     couts: chargerCouts,
-    serveurs: chargerServeurs
+    serveurs: chargerServeurs,
+    parametres: chargerParametres
   };
 
   function reinitialiserOnglets() {
@@ -3796,6 +3837,63 @@
   $('filtrePlantages').addEventListener('change', chargerPlantages);
   $('actualiserFichiers').addEventListener('click', chargerFichiers);
   $('actualiserAnnonces').addEventListener('click', chargerAnnonces);
+
+  /* ---------------------------------------------------------------------
+     Paramètres — le mot de passe du compte de modération
+     --------------------------------------------------------------------- */
+  var LONGUEUR_MOT_DE_PASSE = 12;
+
+  async function chargerParametres() {
+    chargesOnglets.parametres = true;
+    var u = await sb.auth.getUser();
+    $('mdpIdentifiant').value = (u.data && u.data.user && u.data.user.email) || '';
+
+    var liste = await sb.auth.mfa.listFactors();
+    var verifie = liste.data && (liste.data.totp || []).filter(function (f) { return f.status === 'verified'; })[0];
+    $('etatDoubleVerif').innerHTML = verifie
+      ? verdict('calme', 'Active — application d\'authentification enregistrée le ' +
+          new Date(verifie.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.')
+      : verdict('critique', 'Aucune application d\'authentification enregistrée.');
+  }
+
+  $('formMotDePasse').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var nouveau = $('mdpNouveau').value;
+
+    if (nouveau.length < LONGUEUR_MOT_DE_PASSE) {
+      poserEtat('etatMotDePasse', 'alerte', 'Au moins ' + LONGUEUR_MOT_DE_PASSE + ' caractères.');
+      return;
+    }
+    if (nouveau !== $('mdpConfirmation').value) {
+      poserEtat('etatMotDePasse', 'alerte', 'Les deux mots de passe ne sont pas les mêmes.');
+      return;
+    }
+
+    $('mdpEnregistrer').disabled = true;
+    /*
+      ⚠️ L'ancien mot de passe n'est pas demandé : ce compte n'en avait pas, et
+      la session ouverte a déjà passé la double vérification — elle peut bien
+      plus que ça. Même raisonnement que l'écran de l'application
+      (`app/profil/mot-de-passe.tsx`).
+    */
+    var r = await sb.auth.updateUser({ password: nouveau });
+    $('mdpEnregistrer').disabled = false;
+
+    if (r.error) {
+      var code = r.error.code || '';
+      poserEtat('etatMotDePasse', 'critique',
+        code === 'same_password' ? 'C\'est déjà ton mot de passe actuel.'
+          : code === 'weak_password' ? 'Ce mot de passe est trop faible. Choisis-en un plus long.'
+          : code === 'insufficient_aal' ? 'Repasse par la double vérification : déconnecte-toi, puis reconnecte-toi.'
+          : r.error.message);
+      return;
+    }
+
+    $('mdpNouveau').value = '';
+    $('mdpConfirmation').value = '';
+    poserEtat('etatMotDePasse', 'calme',
+      'Mot de passe enregistré. À la prochaine connexion : ton adresse, ce mot de passe, puis le code de ton application.');
+  });
 
   /*
     Un raccourci de la vue d'ensemble vers l'onglet qui porte la file.
@@ -4129,6 +4227,10 @@
     ['listeSignalements', 'listeMessages', 'listeBannis', 'listeBadges', 'listeSuspects', 'listePlantages',
      'contenuFichiers', 'listeAnnonces', 'contenuCouts', 'contenuServeurs']
       .forEach(function (id) { $(id).innerHTML = ''; });
+    // Un mot de passe à moitié tapé ne reste pas à l'écran pour le compte suivant.
+    $('mdpNouveau').value = '';
+    $('mdpConfirmation').value = '';
+    $('etatDoubleVerif').innerHTML = '';
     poserComptes({});
     fermerMenu();
     reinitialiserOnglets();
