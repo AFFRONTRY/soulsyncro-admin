@@ -4044,6 +4044,9 @@
         code === 'same_password' ? 'C\'est déjà ton mot de passe actuel.'
           : code === 'weak_password' ? 'Ce mot de passe est trop faible. Choisis-en un plus long.'
           : code === 'insufficient_aal' ? 'Repasse par la double vérification : déconnecte-toi, puis reconnecte-toi.'
+          // S4, audit du 15 octobre 2026 : au-delà d'un jour de connexion, le
+          // serveur exige une session neuve (« Secure password change »).
+          : code === 'reauthentication_needed' ? 'Ta connexion date de plus d\'un jour : déconnecte-toi, reconnecte-toi, puis recommence.'
           : r.error.message);
       return;
     }
