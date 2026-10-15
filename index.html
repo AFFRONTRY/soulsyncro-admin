@@ -283,7 +283,11 @@
   .onglet .compte[hidden] { display: none; }
   .lateral .pied { margin-top: auto; padding: 0 10px; display: grid; gap: 8px; font-size: 11px; color: var(--doux); }
 
-  .contenu { min-width: 0; padding-inline: 24px; padding-block: 0 40px; }
+  /* Un long mot sans espace — « hahahaha… », une empreinte de plantage — se
+     coupe au lieu d'élargir la page (audit du 15 octobre 2026, É2). Pas dans
+     les tableaux : ils défilent déjà de côté, et un montant ne se coupe pas. */
+  .contenu { min-width: 0; padding-inline: 24px; padding-block: 0 40px; overflow-wrap: anywhere; }
+  .contenu table { overflow-wrap: normal; }
   .tete {
     position: sticky; top: 0; z-index: 5;
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
@@ -329,10 +333,13 @@
   }
   .note strong { color: var(--texte); }
 
-  /* Verdicts et pastilles : un signe ET un mot, jamais la couleur seule. */
+  /* Verdicts et pastilles : un signe ET un mot, jamais la couleur seule.
+     Elles vont à la ligne quand la place manque (audit du 15 octobre 2026,
+     É1) : « Allumée — les inscrits voient l'écran de pause depuis… » sortait
+     de 12 points d'un écran de 360. */
   .verdict, .etat {
     display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
-    font-size: 11px; font-weight: 700; white-space: nowrap;
+    font-size: 11px; font-weight: 700; max-width: 100%;
   }
   .verdict .signe { font-size: 10px; }
   .v-critique, .etat.critique { background: var(--fond-critique); color: var(--critique); }
@@ -1581,6 +1588,7 @@
 
       { n: s.push_en_echec, rang: 40, etat: 'alerte',
         quoi: accord(s.push_en_echec, 'notification en échec', 'notifications en échec'),
+        apres: 'ces 7 derniers jours',  // 0194
         onglet: null, nom: 'notifications' },
 
       { n: s.fichiers_restants, rang: 30, etat: 'alerte',
@@ -3789,10 +3797,12 @@
 
       '<div class="p4"><div class="carte"><h3>Files d\'attente</h3><div class="pile">' +
         '<div class="tuile"><span class="nom">Notifications à envoyer</span><span class="valeur">' + nb(f.notifications) + '</span>' +
-          (Number(f.notifications_en_echec) > 0 ? verdict('alerte', nb(f.notifications_en_echec) + ' en échec') : verdict('calme', 'Vidée chaque minute')) + '</div>' +
+          // 0194 : les échecs des sept derniers jours seulement.
+          (Number(f.notifications_en_echec) > 0 ? verdict('alerte', nb(f.notifications_en_echec) + ' en échec cette semaine') : verdict('calme', 'Vidée chaque minute')) + '</div>' +
         '<div class="tuile"><span class="nom">Fichiers à effacer</span><span class="valeur">' + nb(f.fichiers) + '</span>' +
           '<span class="tendance">Passage chaque nuit à 5 h 09</span></div>' +
-        '<div class="tuile"><span class="nom">Images en attente d\'analyse</span><span class="valeur">' + nb(f.moderation) + '</span></div>' +
+        // 0194 : la même file que l'onglet « Images », plus les seules photos de profil.
+        '<div class="tuile"><span class="nom">Images à juger</span><span class="valeur">' + nb(f.moderation) + '</span></div>' +
       '</div></div></div>' +
 
       '<div class="p8"><div class="carte"><h3>Tâches planifiées <span class="note-titre">' + nb(echecs) + ' ' + accord(echecs, 'échec', 'échecs') +
@@ -4165,6 +4175,8 @@
   var facteurMfa = null;
 
   async function apresConnexion() {
+    // Se connecter est un geste : les douze heures repartent de maintenant.
+    noterGeste();
     $('mfaErreur').textContent = '';
     var niveau = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if (niveau.error) { $('erreur').textContent = niveau.error.message; return; }
@@ -4370,9 +4382,17 @@
     else if (CHARGEURS_ONGLET[pageCourante]) CHARGEURS_ONGLET[pageCourante]();
   });
 
-  $('sortir').addEventListener('click', async function () {
-    await sb.auth.signOut();
+  $('sortir').addEventListener('click', function () { fermerLaSession(); });
+
+  /*
+    Fermer la session : le bouton « Se déconnecter », ou douze heures sans un
+    geste (plus bas). `portee` vaut `local` pour la seconde, pour ne fermer que
+    ce navigateur : l'application sur le téléphone du même compte reste ouverte.
+  */
+  async function fermerLaSession(portee, message) {
+    await sb.auth.signOut(portee ? { scope: portee } : undefined);
     afficherLeBord(false);
+    $('erreur').textContent = message || '';
     $('contenu').innerHTML = '';
     /*
       ⚠️ Un compte qui se connecte après un autre ne doit hériter ni de ses
@@ -4396,15 +4416,74 @@
     poserComptes({});
     fermerMenu();
     reinitialiserOnglets();
+  }
+
+  /*
+    ---------------------------------------------------------------------------
+    Douze heures sans un geste, et la session se ferme
+    ---------------------------------------------------------------------------
+
+    Audit du tableau de bord du 15 octobre 2026, D1, choisi par l'exploitant
+    (« B ») plutôt qu'une session qui meurt avec l'onglet. Jusque-là, une fois
+    passée la double vérification, la page restait ouverte jusqu'à « Se
+    déconnecter » : sur un ordinateur partagé, oublié ou volé, elle s'ouvrait
+    sans mot de passe ni code. Supabase sait borner une session, mais c'est une
+    option du forfait Pro.
+
+    Le dernier geste (clic, touche, défilement) s'écrit au plus une fois par
+    minute dans le navigateur, et vaut pour tous ses onglets. On le relit à
+    l'ouverture de la page, chaque minute, et au retour sur l'onglet.
+
+    ⚠️ **C'est une garde du navigateur, pas du serveur.** Elle ferme une page
+    oubliée, et elle rend la session inutilisable une fois fermée, puisque la
+    déconnexion la révoque chez Supabase. Elle n'empêche pas quelqu'un qui lit
+    le stockage du navigateur AVANT d'ouvrir la page d'y prendre la session :
+    seule la limite du forfait Pro le ferait.
+  */
+  var INACTIVITE_MAX_MS = 12 * 3600 * 1000;
+  var CLE_DERNIER_GESTE = 'soulsyncro.admin.dernierGeste';
+  var gesteEcritLe = 0;
+
+  function noterGeste() {
+    gesteEcritLe = Date.now();
+    try { localStorage.setItem(CLE_DERNIER_GESTE, String(gesteEcritLe)); } catch (e) { /* stockage refusé : la garde se tait */ }
+  }
+
+  function inactifTropLongtemps() {
+    var dernier = 0;
+    try { dernier = Number(localStorage.getItem(CLE_DERNIER_GESTE)) || 0; } catch (e) { return false; }
+    // Aucune trace : une session ouverte avant cette garde. On compte à partir de maintenant.
+    if (!dernier) { noterGeste(); return false; }
+    return Date.now() - dernier > INACTIVITE_MAX_MS;
+  }
+
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (genre) {
+    document.addEventListener(genre, function () {
+      if (Date.now() - gesteEcritLe > 60000) noterGeste();
+    }, { capture: true, passive: true });
+  });
+
+  var MESSAGE_INACTIVITE = 'Déconnecté après 12 heures sans activité. Reconnecte-toi.';
+
+  async function verifierInactivite() {
+    var connecte = !$('bord').hidden || !$('doubleVerif').hidden;
+    if (connecte && inactifTropLongtemps()) await fermerLaSession('local', MESSAGE_INACTIVITE);
+  }
+  setInterval(verifierInactivite, 60000);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) verifierInactivite();
   });
 
   /*
-    La session survit à la fermeture de l'onglet : on reprend là où l'on était.
+    La session survit à la fermeture de l'onglet : on reprend là où l'on était,
+    si le dernier geste date de moins de douze heures.
     Aucun chargement automatique sans session — la page ne dépense rien avant
     d'être utilisée, ce qui compte sur un forfait payé au mégaoctet.
   */
-  sb.auth.getSession().then(function (r) {
-    if (r.data.session) apresConnexion();
+  sb.auth.getSession().then(async function (r) {
+    if (!r.data.session) return;
+    if (inactifTropLongtemps()) { await fermerLaSession('local', MESSAGE_INACTIVITE); return; }
+    apresConnexion();
   });
 })();
 </script>
