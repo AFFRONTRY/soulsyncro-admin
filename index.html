@@ -3547,7 +3547,7 @@
      Page — Coûts et bénéfice (0151)
      --------------------------------------------------------------------- */
   var NOMS_PALIERS = { vip: 'Abonnements VIP', premium: 'Abonnements Premium' };
-  var NOMS_MESURES = { images: 'image', codes_whatsapp: 'code', emails: 'e-mail' };
+  var NOMS_MESURES = { images: 'image', codes_whatsapp: 'code', emails: 'e-mail', secondes_video: 'seconde' }; // 0198 : la vidéo se paie à la durée
   var moisCouts = null;
 
   function nomDuMois(iso) {
@@ -3633,7 +3633,7 @@
       '<form class="formulaire-charge" id="formCharge">' +
         '<label for="chPoste">Nouvelle charge<input id="chPoste" maxlength="80" placeholder="Ex. : loyer du bureau"></label>' +
         '<label class="court" for="chGenre">Type<select id="chGenre"><option value="fixe">Fixe, par mois</option><option value="unite">À l\'unité</option></select></label>' +
-        '<label class="court" for="chMesure" hidden id="chMesureBloc">Compte<select id="chMesure"><option value="images">Images analysées</option><option value="codes_whatsapp">Codes WhatsApp</option><option value="emails">E-mails</option></select></label>' +
+        '<label class="court" for="chMesure" hidden id="chMesureBloc">Compte<select id="chMesure"><option value="images">Images analysées</option><option value="codes_whatsapp">Codes WhatsApp</option><option value="emails">E-mails</option><option value="secondes_video">Secondes de vidéo</option></select></label>' +
         '<label class="court" for="chPrix">Prix (F)<input id="chPrix" type="number" min="0" step="0.1" value="0"></label>' +
         '<button type="submit">Ajouter</button></form></div></div>' +
       blocSortie(c.sortie) +
