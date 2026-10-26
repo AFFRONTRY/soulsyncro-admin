@@ -1010,7 +1010,7 @@
         </div>
         <div>
           <label for="annCommune">Commune <span class="discret">(vide : toute la ville)</span></label>
-          <input id="annCommune" maxlength="80">
+          <input id="annCommune" list="communesConnues" maxlength="80">
         </div>
       </div>
 
@@ -1062,6 +1062,7 @@
     </form>
 
     <datalist id="villesConnues"></datalist>
+    <datalist id="communesConnues"></datalist>
     <div id="listeAnnonces"></div>
   </div>
 
@@ -2680,6 +2681,16 @@
         '<span class="pastille-attention">' + nb(l.occurrences) + ' fois</span>' +
         '<span class="discret">' + entete + '</span></div>' +
       '<p class="fiche-contenu">' + ech(l.message) + '</p>' +
+      /*
+        Quand, et avec quelle gravité (26 octobre 2026). Sans la date, un
+        plantage d'août et un plantage de ce matin se ressemblaient : on ne
+        savait pas si une correction l'avait déjà fait disparaître.
+      */
+      '<p class="discret">' +
+        (l.fatal ? 'A fermé l\'application' : 'Rattrapé : l\'application est restée ouverte') +
+        ' · dernière fois ' + ech(ilYA(l.derniere_fois)) +
+        (l.occurrences > 1 ? ' · première ' + ech(ilYA(l.premiere_fois)) : '') +
+      '</p>' +
       (l.pile ? '<details><summary>Pile d\'appel</summary><pre>' + ech(l.pile) + '</pre></details>' : '') +
       '<div class="fiche-actions"><button type="button" data-action="classer" ' +
         'data-empreinte="' + ech(l.empreinte) + '" data-vers="' + versTraite + '">' +
@@ -2828,6 +2839,17 @@
       }
       $('contenuFichiers').innerHTML =
         '<div class="tuiles">' + tuile('à effacer', nb(r[0].data)) + tuile('retenus', nb(r[1].data)) + '</div>' +
+        /*
+          Les deux nombres dits en mots (26 octobre 2026). Seuls, ils ont
+          caché un mois durant seize selfies de badge que rien n'effaçait
+          (0213) : « retenus » ne disait pas qu'un nombre qui ne baisse
+          jamais est un défaut.
+        */
+        '<p class="discret" style="margin-top:10px"><b>À effacer</b> : des fichiers dont plus rien ne se sert. ' +
+        'Le ménage de la nuit les efface, à 5 h 09, ou « Nettoyer maintenant » tout de suite.</p>' +
+        '<p class="discret"><b>Retenus</b> : des fichiers en file, mais qu\'une ligne cite encore — un ' +
+        'signalement ouvert, une demande de badge en attente. Ils partent quand elle cesse de les citer. ' +
+        'Un nombre qui ne baisse jamais, des jours durant, est un défaut à signaler.</p>' +
         '<div class="fiche-actions" style="margin-top:14px">' +
         '<button type="button" id="nettoyerMaintenant">Nettoyer maintenant</button></div>';
       $('nettoyerMaintenant').addEventListener('click', nettoyerLesFichiers);
@@ -2942,23 +2964,46 @@
       '<p class="chiffres-annonce">Forfait : ' + (a.prix_fcfa === null || a.prix_fcfa === undefined
         ? '<span class="discret">non saisi — il manquera au bénéfice du mois</span>' : fcfa(a.prix_fcfa)) + '</p>' +
       '<div class="fiche-actions">' + basculer +
+        '<button type="button" class="sobre" data-action="prolonger" data-id="' + a.id + '">Prolonger d\'une semaine</button>' +
         '<button type="button" class="sobre" data-action="modifier" data-id="' + a.id + '">Modifier</button>' +
         '<button type="button" class="danger" data-action="supprimer" data-id="' + a.id + '" ' +
           'data-nom="' + ech(a.annonceur) + '">Supprimer</button>' +
       '</div></div>';
   }
 
+  var densite = [];
+
   async function remplirVilles() {
-    if ($('villesConnues').childElementCount > 0) return;
+    if ($('villesConnues').childElementCount > 0) { remplirCommunes(); return; }
     var r = await sb.rpc('tableau_densite');
     if (r.error || !r.data) return;
-    var villes = Array.from(new Set((r.data || [])
+    densite = r.data;
+    var villes = Array.from(new Set(densite
       .map(function (l) { return l.ville; })
       .filter(function (v) { return v && v !== '(sans ville)'; }))).sort();
     $('villesConnues').innerHTML = villes.map(function (v) {
       return '<option value="' + ech(v) + '"></option>';
     }).join('');
+    remplirCommunes();
   }
+
+  /*
+    Les communes proposées sont celles de la ville choisie où quelqu'un est
+    inscrit (26 octobre 2026). Tapée à la main, une commune mal écrite fait
+    une annonce que personne ne voit ; la liste ne l'interdit pas, elle évite
+    la faute. La comparaison en base ignore déjà majuscules et accents.
+  */
+  function remplirCommunes() {
+    var ville = $('annVille').value.trim().toLowerCase();
+    var communes = Array.from(new Set(densite
+      .filter(function (l) { return l.ville && l.ville.toLowerCase() === ville; })
+      .map(function (l) { return l.commune; })
+      .filter(function (c) { return c && c !== '(sans commune)'; }))).sort();
+    $('communesConnues').innerHTML = communes.map(function (c) {
+      return '<option value="' + ech(c) + '"></option>';
+    }).join('');
+  }
+  $('annVille').addEventListener('input', remplirCommunes);
 
   async function chargerAnnonces() {
     $('actualiserAnnonces').disabled = true;
@@ -3219,6 +3264,36 @@
     if (action === 'modifier') {
       var a = annoncesChargees.find(function (x) { return x.id === id; });
       if (a) { ouvrirFormulaire(a); window.scrollTo(0, 0); }
+      return;
+    }
+
+    /*
+      Une semaine de plus, l'unité de vente (26 octobre 2026) : après la fin
+      prévue, ou à partir d'aujourd'hui si l'annonce est déjà terminée. Par
+      `enregistrer_annonce`, avec tout le reste inchangé — le forfait compris,
+      que le modérateur corrige si le commerce paie cette semaine.
+    */
+    if (action === 'prolonger') {
+      var p = annoncesChargees.find(function (x) { return x.id === id; });
+      if (!p) return;
+      var depart = new Date((p.fin < aujourdhui(0) ? aujourdhui(-1) : p.fin) + 'T00:00:00Z');
+      depart.setUTCDate(depart.getUTCDate() + 7);
+      var nouvelleFin = depart.toISOString().slice(0, 10);
+      bouton.disabled = true;
+      var rp = await sb.rpc('enregistrer_annonce', {
+        p_id: p.id, p_annonceur: p.annonceur, p_texte: p.texte, p_lien: p.lien,
+        p_image_chemin: p.image_chemin, p_ratio: p.ratio, p_pays: p.pays,
+        p_ville: p.ville, p_commune: p.commune, p_debut: p.debut, p_fin: nouvelleFin,
+        p_prix_fcfa: p.prix_fcfa, p_video_chemin: p.video_chemin, p_video_duree_s: p.video_duree_s
+      });
+      if (rp.error) {
+        poserEtat('etatAnnonces', 'critique', expliquerErreur(rp.error.message));
+        bouton.disabled = false;
+        return;
+      }
+      poserEtat('etatAnnonces', 'calme', 'Prolongée jusqu\'au ' + dateCourte(nouvelleFin) +
+        '. Le forfait n\'a pas changé : « Modifier » le met à jour si le commerce paie cette semaine.');
+      await chargerAnnonces();
       return;
     }
 
