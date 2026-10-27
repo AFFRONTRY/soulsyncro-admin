@@ -2745,6 +2745,13 @@
       '<div class="fiche-actions">' +
         '<button type="button" class="sobre" data-action="copier" data-empreinte="' + ech(l.empreinte) + '">' +
         'Copier pour Claude Code</button>' +
+        /*
+          « Écarter » (0217) : un faux rapport, déposé sans compte et renvoyé en
+          boucle, revenait en tête à chaque occurrence. Écarté, il reste classé ;
+          « Remettre à regarder » lève l'écart.
+        */
+        (versTraite ? '<button type="button" class="sobre" data-action="classer" data-ecarter="true" ' +
+          'data-empreinte="' + ech(l.empreinte) + '" data-vers="true">Écarter : faux rapport</button>' : '') +
         '<button type="button" data-action="classer" ' +
         'data-empreinte="' + ech(l.empreinte) + '" data-vers="' + versTraite + '">' +
         (versTraite ? 'Marquer traité' : 'Remettre à regarder') + '</button></div></div>';
@@ -2789,17 +2796,22 @@
     if (!bouton) return;
 
     var versTraite = bouton.getAttribute('data-vers') === 'true';
+    var ecarter = bouton.hasAttribute('data-ecarter');
     bouton.disabled = true;
-    var r = await sb.rpc('classer_plantage', {
-      p_empreinte: bouton.getAttribute('data-empreinte'), p_traite: versTraite
-    });
+    var r = ecarter
+      ? await sb.rpc('ecarter_plantage', { p_empreinte: bouton.getAttribute('data-empreinte') })
+      : await sb.rpc('classer_plantage', {
+        p_empreinte: bouton.getAttribute('data-empreinte'), p_traite: versTraite
+      });
     if (r.error) {
       poserEtat('etatPlantages', 'critique', expliquerErreur(r.error.message));
       bouton.disabled = false;
       return;
     }
     bouton.closest('.fiche').remove();
-    poserEtat('etatPlantages', 'calme', versTraite ? 'Marqué traité.' : 'Remis à regarder.');
+    poserEtat('etatPlantages', 'calme', ecarter
+      ? 'Écarté : même s\'il revient, il restera dans les plantages traités.'
+      : versTraite ? 'Marqué traité.' : 'Remis à regarder.');
     if (!$('listePlantages').querySelector('.fiche')) {
       $('listePlantages').innerHTML = '<p class="fiche-vide">Rien ici.</p>';
     }
