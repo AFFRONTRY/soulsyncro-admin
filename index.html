@@ -2212,7 +2212,25 @@
   /* ---------------------------------------------------------------------
      Onglet — Messages des inscrits
      --------------------------------------------------------------------- */
-  function ficheMessage(l) {
+  /*
+    0221 — une demande de changement de pays. Le pays du profil, celui que le
+    téléphone a trouvé s'il a été autorisé, et le bouton qui ouvre sept jours.
+    Le pays du téléphone est un indice, pas une preuve : une application
+    modifiée enverrait ce qu'elle veut.
+  */
+  function blocPays(l, p) {
+    if (!p || !p.demande_de_pays) return '';
+    var fin = p.pays_modifiable_jusqu_au ? new Date(p.pays_modifiable_jusqu_au) : null;
+    var ouvert = fin && fin.getTime() > Date.now();
+    return '<p class="discret">Pays du profil : <strong>' + ech(p.pays || '?') + '</strong> · ' +
+      (p.pays_detecte
+        ? 'pays du téléphone : <strong>' + ech(p.pays_detecte) + '</strong> (indiqué par le téléphone)'
+        : 'position refusée ou introuvable') +
+      (ouvert ? ' · débloqué jusqu’au ' + ech(fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })) : '') +
+      '</p>';
+  }
+
+  function ficheMessage(l, p) {
     var quand = new Date(l.cree_le);
     var date = isNaN(quand.getTime())
       ? ''
@@ -2223,10 +2241,16 @@
       '<div class="fiche-tete">' +
         '<span class="etiquette">' + ech(l.nom || 'Compte sans nom') + '</span>' +
         (l.banni ? '<span class="pastille-attention">Compte banni</span>' : '') +
+        (p && p.demande_de_pays ? '<span class="pastille-attention">Changement de pays</span>' : '') +
         '<span class="discret">' + ech(date) + '</span>' +
       '</div>' +
       '<p class="fiche-contenu">' + ech(l.texte) + '</p>' +
+      blocPays(l, p) +
       '<div class="fiche-actions">' +
+        (p && p.demande_de_pays
+          ? '<button type="button" data-action="pays" data-profil="' + l.auteur + '" ' +
+            'data-nom="' + ech(l.nom || 'cette personne') + '">Débloquer le pays (7 jours)</button>'
+          : '') +
         '<button type="button" class="sobre" data-action="ecrire" ' +
           'data-profil="' + l.auteur + '" ' +
           'data-nom="' + ech(l.nom || 'cette personne') + '">Répondre</button>' +
@@ -2250,8 +2274,17 @@
         return;
       }
       var lignes = r.data || [];
+      /*
+        0221 : les demandes de pays, lues en une fois pour la page. Un échec ici
+        n'empêche pas de lire les messages : ils s'affichent sans le bloc pays.
+      */
+      var pays = {};
+      if (lignes.length) {
+        var rp = await sb.rpc('pays_des_messages', { p_ids: lignes.map(function (l) { return l.id; }) });
+        (rp.data || []).forEach(function (p) { pays[p.id] = p; });
+      }
       liste.innerHTML = lignes.length
-        ? lignes.map(ficheMessage).join('')
+        ? lignes.map(function (l) { return ficheMessage(l, pays[l.id]); }).join('')
         : '<p class="fiche-vide">Aucun message dans ce statut.</p>';
     } catch (cause) {
       poserEtat('etatMessages', 'critique', String(cause));
@@ -2271,6 +2304,29 @@
       modération, déposé en notification. Il n'y a pas de fil de discussion, et
       c'est voulu — deux tables, deux sens.
     */
+    /*
+      0221 : ouvrir sept jours. L'admin ne choisit pas le pays : la personne le
+      change elle-même dans « Modifier mon profil », avec les listes de villes.
+      On lui répond ensuite avec « Répondre », pour qu'elle sache quoi faire.
+    */
+    if (action === 'pays') {
+      var nom = bouton.getAttribute('data-nom');
+      var accord = await confirmer('Débloquer le pays ?',
+        nom + ' pourra changer son pays et sa ville pendant 7 jours, dans « Modifier ' +
+        'mon profil ». Pense à lui répondre pour le lui dire.',
+        'Débloquer', false);
+      if (!accord) return;
+      bouton.disabled = true;
+      var rd = await sb.rpc('autoriser_changement_de_pays', { p_profil: bouton.getAttribute('data-profil') });
+      if (rd.error) {
+        poserEtat('etatMessages', 'critique', expliquerErreur(rd.error.message));
+        bouton.disabled = false;
+        return;
+      }
+      poserEtat('etatMessages', 'calme', 'Pays débloqué pour 7 jours. Réponds-lui pour le lui dire.');
+      return;
+    }
+
     if (action === 'ecrire') {
       var parti = await ecrireA(
         bouton.getAttribute('data-profil'),
