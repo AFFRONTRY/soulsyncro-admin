@@ -1980,7 +1980,8 @@
         '<div class="rangs">' +
         rang('Paiements réussis ce mois', nb(a.paiements_reussis_mois)) +
         rang('Recettes du mois', nb(a.recettes_mois_fcfa) + ' FCFA') +
-        rang('Paiements échoués ce mois', nb(a.paiements_echoues_mois)) +
+        // `echoue` = encaissé à un montant inattendu, jamais « refusé » (audit du paiement, E2).
+        rang('Encaissés à un montant inattendu ce mois', nb(a.paiements_echoues_mois)) +
         rang('Paiements en attente', nb(a.paiements_en_attente)) +
         '</div></details>';
     } else {
