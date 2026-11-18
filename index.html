@@ -1901,7 +1901,45 @@
   /* ---------------------------------------------------------------------
      Bloc 4 — Est-ce que ça rapporte ?
      --------------------------------------------------------------------- */
-  function blocArgent(a) {
+  /*
+    Les paiements à reprendre à la main *(0233, audit du paiement, A1)* :
+    l'argent est arrivé, rien ne s'est ouvert, rien n'est encore rendu. Ce sont
+    les personnes à qui l'application a dit « on te rembourse ». Avant, elles ne
+    se retrouvaient qu'en SQL.
+
+    Rien ne se fait d'ici : le remboursement se fait chez Paystack, et son
+    message `refund.processed` retire la ligne de cette liste. `null` veut dire
+    que la lecture a échoué — ce n'est pas « aucun ».
+  */
+  function blocAReprendre(lignes) {
+    if (lignes === null) {
+      return '<p class="note">' + verdict('alerte', 'Paiements à reprendre illisibles') +
+        '<br>La liste des paiements encaissés sans rien ouvrir n\'a pas pu être lue. Actualiser.</p>';
+    }
+    if (!lignes.length) return '';
+
+    var corps = lignes.map(function (l) {
+      var jour = l.regle_le
+        ? new Date(l.regle_le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '—';
+      return '<tr><td>' + ech(jour) + '</td>' +
+        '<td><code>' + ech(l.reference) + '</code></td>' +
+        '<td>' + ech(l.tier_code + ' · ' + l.mois + ' mois') + '</td>' +
+        '<td class="n">' + nb(l.montant_fcfa) + '</td>' +
+        '<td class="n">' + nb(l.encaisse_fcfa) + '</td>' +
+        '<td>' + ech(l.motif || '—') + (l.operateur ? '<br><span class="discret">' + ech(l.operateur) + '</span>' : '') + '</td></tr>';
+    }).join('');
+
+    return '<p class="note" style="border-color:var(--alerte)">' +
+      verdict('alerte', nb(lignes.length) + ' ' + accord(lignes.length, 'paiement à reprendre', 'paiements à reprendre')) +
+      '<br>L\'argent est arrivé et n\'a rien ouvert. Rembourser depuis le tableau de bord de Paystack, ' +
+      'en cherchant la référence : la ligne quitte cette liste d\'elle-même.</p>' +
+      '<div class="cadre"><table><thead><tr><th>Encaissé le</th><th>Référence</th><th>Offre</th>' +
+      '<th class="n">Prix (FCFA)</th><th class="n">Encaissé (FCFA)</th><th>Motif</th></tr></thead><tbody>' +
+      corps + '</tbody></table></div>';
+  }
+
+  function blocArgent(a, aReprendre) {
     var abonnes = a.abonnes_vip + a.abonnes_premium;
 
     /*
@@ -1935,7 +1973,7 @@
       tuile('abonnés Premium', nb(a.abonnes_premium)) +
       tuile('veulent le VIP', nb(a.interets_vip)) +
       tuile('veulent le Premium', nb(a.interets_premium)) +
-      '</div>';
+      '</div>' + blocAReprendre(aReprendre);
 
     if (a.encaissement_ouvert) {
       html += '<details class="detail"><summary>Le détail des paiements</summary>' +
@@ -3835,7 +3873,7 @@
         '<td class="n">' + volume + '</td><td class="n">' + fcfa(ch.montant) + '</td>' +
         '<td class="n"><button type="button" class="sobre petit" data-action="retirer-charge" data-nom="' + ech(ch.poste) + '" aria-label="Retirer ' + ech(ch.poste) + '">✕</button></td></tr>';
     });
-    lignesCharges.push('<tr><td>Commissions d\'encaissement<span class="secondaire">relevées sur chaque paiement</span></td><td></td><td></td><td class="n">' +
+    lignesCharges.push('<tr><td>Commissions d\'encaissement<span class="secondaire">relevées sur chaque paiement, remboursés compris : Paystack ne les rend pas</span></td><td></td><td></td><td class="n">' +
       fcfa(c.commissions) + '</td><td></td></tr>');
     html += '<div class="p6"><div class="carte"><h3>Charges du mois <span class="note-titre">Les prix se modifient ici</span></h3>' +
       '<div class="cadre"><table class="charges"><thead><tr><th>Poste</th><th class="n">Prix</th><th class="n">Volume</th><th class="n">Montant</th><th></th></tr></thead><tbody>' +
@@ -4089,7 +4127,7 @@
      La vue d'ensemble, recomposée — les quatre questions d'avant sont
      gardées, entourées de tuiles, d'une courbe et de deux résumés.
      --------------------------------------------------------------------- */
-  function composerEnsemble(sante, usage, densite, argent, series, serveurs, couts) {
+  function composerEnsemble(sante, usage, densite, argent, series, serveurs, couts, aReprendre) {
     var html = '<div class="grille">';
 
     // Le résumé des serveurs et du mois
@@ -4156,7 +4194,7 @@
 
     html += '<div class="p4">' + blocDensite(densite) + '</div>';
     html += '<div class="p6">' + blocUsage(usage) + '</div>';
-    html += '<div class="p6">' + blocArgent(argent) + '</div>';
+    html += '<div class="p6">' + blocArgent(argent, aReprendre) + '</div>';
     return html + '</div>';
   }
 
@@ -4323,7 +4361,9 @@
         */
         sb.rpc('tableau_courbes', { p_jours: periodeJours }),
         sb.rpc('tableau_serveurs', { p_jours: 1 }),
-        sb.rpc('tableau_couts')
+        sb.rpc('tableau_couts'),
+        // 0233 : les paiements encaissés qui n'ont rien ouvert.
+        sb.rpc('paiements_a_reprendre')
       ]);
 
       var enPanne = r.slice(0, 6).find(function (x) { return x.error; });
@@ -4347,7 +4387,8 @@
 
       courbes = {};
       $('contenu').innerHTML = composerEnsemble(sante, r[1].data[0], r[2].data, r[3].data[0],
-        r[5].data || [], r[6].error ? null : r[6].data, r[7].error ? null : r[7].data);
+        r[5].data || [], r[6].error ? null : r[6].data, r[7].error ? null : r[7].data,
+        r[8].error ? null : (r[8].data || []));
       activerCourbes($('contenu'));
       poserComptes(sante);
 
