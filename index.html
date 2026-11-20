@@ -256,9 +256,33 @@
     padding: 16px 10px 20px; position: sticky; top: 0;
     height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
   }
+  /*
+    Le logo, comme dans l'application *(règle de l'exploitant du 20 novembre
+    2026, PRODUIT.md)* : l'emblème, « Soul » en brun, « Syncro » en terre cuite,
+    le point vert. ⚠️ Copie de `SIGNATURE` dans `scripts/generer-site-legal.ts`,
+    elle-même copie de `src/components/ui/Logo.tsx` : les trois bougent ensemble.
+    Les couleurs sont celles de `palettes.ts`, PAS les accents de cette page
+    (`--accent` vaut #B7410E ici, la terre cuite de l'application #B8502A).
+  */
+  :root { --logo-nom: #2B1D14; --logo-syncro: #B8502A; --logo-point: #1E6B52; --logo-fond: #F7E4D9; }
+  @media (prefers-color-scheme: dark) {
+    :root { --logo-nom: #F6EBE1; --logo-syncro: #E1794F; --logo-point: #4FB08C; --logo-fond: #3B221A; }
+  }
+  .signature { display: inline-flex; align-items: baseline; }
+  .signature svg { flex: none; width: 40px; height: 40px; margin-right: 2px; position: relative; top: 2px; }
+  .signature .fond { fill: var(--logo-fond); }
+  .signature .traces { fill: none; stroke: var(--logo-syncro); opacity: 0.32; }
+  .signature .traces * { stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .signature .pointille { stroke-dasharray: 2 2; }
+  .signature .jambes { stroke: var(--logo-syncro); stroke-width: 17; stroke-linecap: round; }
+  .signature .nom-marque { display: inline-flex; align-items: center; font: 700 30px/38px "Fraunces", Georgia, serif; color: var(--logo-nom); }
+  .signature .syncro { color: var(--logo-syncro); }
+  .signature .point { flex: none; width: 8px; height: 8px; margin: 8px 0 0 4px; border-radius: 50%; background: var(--logo-point); }
+  /* La petite taille de l'application (`size="sm"`) : nom de 23, emblème de 30, point de 6. */
+  .signature.petite svg { width: 30px; height: 30px; }
+  .signature.petite .nom-marque { font-size: 23px; line-height: 31px; }
+  .signature.petite .point { width: 6px; height: 6px; margin-top: 4px; }
   .marque { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px; padding: 0 10px; }
-  .marque b { font: 700 18px/1 "Fraunces", Georgia, serif; }
-  .marque b + b { color: var(--accent); }
   .marque small { width: 100%; margin-top: 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--doux); }
   #navigation { display: grid; gap: 14px; }
   .groupe h2 {
@@ -634,7 +658,7 @@
 </section>
 
 <section id="connexion" class="carte ecran-seul" hidden>
-  <h1>SoulSyncro</h1>
+  <h1 class="signature" aria-label="SoulSyncro"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="cadre-embleme-connexion"><rect width="100" height="100" rx="31.25"/></clipPath></defs><rect class="fond" width="100" height="100" rx="31.25"/><g clip-path="url(#cadre-embleme-connexion)"><g class="traces"><circle cx="50" cy="50" r="43"/><circle cx="50" cy="50" r="26"/><line x1="0" y1="66" x2="100" y2="66"/><line class="pointille" x1="50" y1="0" x2="50" y2="100"/><line x1="50" y1="4" x2="5" y2="81.94"/><line x1="50" y1="4" x2="95" y2="81.94"/></g><g class="jambes"><line x1="45.75" y1="22.36" x2="18.25" y2="69.99"/><line x1="54.25" y1="22.36" x2="81.75" y2="69.99"/></g></g></svg><span class="nom-marque" aria-hidden="true">Soul<span class="syncro">Syncro</span><span class="point"></span></span></h1>
   <p>Tableau de bord d'exploitation. Réservé aux comptes de modération.</p>
 
   <form id="formulaire">
@@ -745,7 +769,7 @@
 -->
 <div class="charpente" id="bord" hidden>
   <nav class="lateral" id="lateral" aria-label="Sections du tableau de bord">
-    <div class="marque"><b>Soul</b><b>Syncro</b><small>Tableau de bord</small></div>
+    <div class="marque"><span class="signature petite" role="img" aria-label="SoulSyncro"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="cadre-embleme-lateral"><rect width="100" height="100" rx="31.25"/></clipPath></defs><rect class="fond" width="100" height="100" rx="31.25"/><g clip-path="url(#cadre-embleme-lateral)"><g class="traces"><circle cx="50" cy="50" r="43"/><circle cx="50" cy="50" r="26"/><line x1="0" y1="66" x2="100" y2="66"/><line class="pointille" x1="50" y1="0" x2="50" y2="100"/><line x1="50" y1="4" x2="5" y2="81.94"/><line x1="50" y1="4" x2="95" y2="81.94"/></g><g class="jambes"><line x1="45.75" y1="22.36" x2="18.25" y2="69.99"/><line x1="54.25" y1="22.36" x2="81.75" y2="69.99"/></g></g></svg><span class="nom-marque">Soul<span class="syncro">Syncro</span><span class="point"></span></span></span><small>Tableau de bord</small></div>
     <div id="navigation">
       <div class="groupe"><h2>Pilotage</h2><ul>
         <li><button type="button" class="onglet actif" data-onglet="ensemble"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Vue d'ensemble</span></button></li>
